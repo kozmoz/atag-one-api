@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import org.junit.Before;
 import org.junit.Test;
 
-public class MainTest {
+public class AtagOneAppTest {
 
 	private AtagOneApp atagOneApp;
 
