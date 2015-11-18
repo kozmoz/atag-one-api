@@ -18,9 +18,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.sf.json.JSON;
-import net.sf.json.JSONSerializer;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -28,7 +25,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.json.JSONObject;
 
 import lombok.Setter;
 import lombok.extern.java.Log;
@@ -104,8 +101,8 @@ public class AtagOneApp {
 			// Get diagnostics.
 			final Map<String, Object> diagnoses = atagOneApp.getDiagnostics();
 
-			final JSON json = JSONSerializer.toJSON(diagnoses);
-			System.out.println(json.toString(4));
+			JSONObject jsonObject = new JSONObject(diagnoses);
+			System.out.println(jsonObject.toString(4));
 			System.out.println();
 
 		} catch (IOException e) {
