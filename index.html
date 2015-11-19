@@ -25,7 +25,7 @@
         <section id="downloads" class="clearfix">
             <a href="https://github.com/kozmoz/atag-one-api/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
             <a href="https://github.com/kozmoz/atag-one-api/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
-            <a href="https://github.com/kozmoz/atag-one-api" id="view-on-github" class="button"><span>View on GitHub</span></a>
+            <a href="https://github.com/kozmoz/atag-one-api" id="view-on-github" class="button" target="-blank"><span>View on GitHub</span></a>
         </section>
 
         <hr>
@@ -42,15 +42,14 @@
                 command.
             </p>
             <p>
-                A typical message displayed by <code>atag-one</code> looks like this:
+                A typical message looks like this:
             </p>
 
 <pre>
-$ atag-one.sh -e &lt;email&gt; -p &lt;p6ssw0rd&gt;
 {
     "deviceId": "6808-1401-3109_15-30-001-123",
     "deviceAlias": "CV-ketel",
-    "latestReportTime": "2015-11-19 13:46:44",
+    "latestReportTime": "<span class="bh-now">2015-11-19 13:46:44</span>",
     "connectedTo": "BCU",
     "burningHours": 41.4,
     "boilerHeatingFor": "-",
@@ -72,15 +71,24 @@ $ atag-one.sh -e &lt;email&gt; -p &lt;p6ssw0rd&gt;
             </h3>
 
             <p>
-                First, install Java [ <a target="_blank" href="https://java.com">Windows</a> / <a id="java-install-debian-link">Debian</a> / <a>Raspberry
-                Pi</a> ].
+                First, install Java [ <a target="_blank" href="https://java.com">Windows</a> /
+                <a id="java-install-debian-link">Debian</a> /
+                <a id="java-install-raspbian-link">Raspberry Pi</a> ].
             </p>
 
             <div id="java-install-debian" class="hidden">
                 <p>Installation for Debian 8 Jessie:</p>
 
 <pre>
-# sudo apt-get update && apt-get -y install default-jdk
+$ sudo apt-get update && apt-get -y install default-jdk
+</pre>
+            </div>
+
+            <div id="java-install-raspbian" class="hidden">
+                <p>Installation for Raspberry Pi Raspbian OS:</p>
+
+<pre>
+$ sudo apt-get update && sudo apt-get -y install oracle-java8-jdk
 </pre>
             </div>
 
@@ -95,11 +103,39 @@ Java(TM) SE Runtime Environment (build 1.8.0_60-b27)
 Java HotSpot(TM) 64-Bit Server VM (build 25.60-b23, mixed mode)
 </pre>
 
+            <p>
+                Download <a href="todo" download="atag-one.jar">atag-one.jar</a>, open a terminal and start <code>atag-one</code> with the user
+                credentials specified (emailaddress and password):
+            </p>
+
+<pre>
+$ cd ~/Downloads/
+$ java atag-one.jar -e user@gmail.com -p p6ssw0rd
+{
+    "deviceId": "6808-1401-3109_15-30-001-123",
+    "deviceAlias": "CV-ketel",
+    "latestReportTime": "<span class="bh-now">2015-11-19 13:46:44</span>",
+    "connectedTo": "BCU",
+    "burningHours": 41.4,
+    "boilerHeatingFor": "-",
+    "flameStatus": false,
+    "roomTemperature": 18.1,
+    "outsideTemperature": 13,
+    "dhwSetpoint": 60,
+    "dhwWaterTemperature": 32.3,
+    "chSetpoint": 1.4,
+    "chWaterTemperature": 18.1,
+    "chWaterPressure": 1.5,
+    "chReturnTemperature": 18.1
+}
+</pre>
+
             <h3>
                 <a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support
                 or Contact</h3>
 
-            <p>Having trouble with Pages? Check out our <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
+            <p>Having trouble? <a href="http://juur.link/contact/" target="_blank">Contact me</a>,
+                or <a href="https://github.com/kozmoz/atag-one-api/issues/new" target="_blank">file an issue on GitHub</a>.</p>
 
         </section>
 
