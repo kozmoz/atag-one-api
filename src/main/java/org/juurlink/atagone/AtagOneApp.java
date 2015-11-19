@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -333,7 +334,7 @@ public class AtagOneApp {
 			final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
 
 			// Scrape values from HTML page.
-			Map<String, Object> values = new HashMap<String, Object>();
+			Map<String, Object> values = new LinkedHashMap<String, Object>();
 			values.put("deviceId", selectedDeviceId);
 			values.put("deviceAlias", getDiagnosticValueByLabel(html, String.class, "Apparaat alias", "Device alias"));
 			values.put("latestReportTime", getDiagnosticValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time"));
