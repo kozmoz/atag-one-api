@@ -46,14 +46,16 @@ public class AtagOneApp {
 	private static final Pattern PATTERN_DEVICE_ID = Pattern
 		.compile("[0-9]{4}-[0-9]{4}-[0-9]{4}_[0-9]{2}-[0-9]{2}-[0-9]{3}-[0-9]{3}", Pattern.DOTALL);
 	private static final String ENCODING_UTF_8 = "UTF-8";
+
 	/**
 	 * HTTP Connect timeout in milliseconds.
 	 */
-	private static final int HTTP_CONNECT_TIMEOUT = 2000;
+	private static final int HTTP_CONNECT_TIMEOUT = 5000;
+
 	/**
 	 * HTTP Read timeout in milliseconds.
 	 */
-	private static final int HTTP_READ_TIMEOUT = 2000;
+	private static final int HTTP_READ_TIMEOUT = 5000;
 
 	@Setter
 	private String username;
