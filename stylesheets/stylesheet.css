@@ -98,6 +98,12 @@ header h2 {
     letter-spacing: -1px;
 }
 
+header img {
+    border: 0;
+    float: right;
+    margin-top: 13px;
+}
+
 #container {
     min-height: 595px;
     background: transparent url(../images/highlight-bg.jpg) 50% 0 no-repeat;
@@ -327,6 +333,7 @@ dl dt {
 }
 
 footer {
+    position: relative;
     padding-top: 20px;
     padding-bottom: 30px;
     margin-top: 40px;
@@ -341,6 +348,13 @@ footer a {
 
 footer a:hover {
     color: #444;
+}
+
+footer img {
+    display: block;
+    position: absolute;
+    bottom: 34px;
+    right: 0;
 }
 
 /* MISC */
