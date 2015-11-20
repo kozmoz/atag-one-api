@@ -10,13 +10,6 @@
 
     <dependencies>
 
-        <!-- JSON Support. -->
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20150729</version>
-        </dependency>
-
         <!-- Parsing command line arguments. -->
         <dependency>
             <groupId>commons-cli</groupId>

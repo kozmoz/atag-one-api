@@ -24,7 +24,9 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.json.JSONObject;
+import org.juurlink.atagone.utils.IOUtils;
+import org.juurlink.atagone.utils.JSONUtils;
+import org.juurlink.atagone.utils.StringUtils;
 
 import lombok.Setter;
 import lombok.extern.java.Log;
@@ -102,8 +104,8 @@ public class AtagOneApp {
 			// Get diagnostics.
 			final Map<String, Object> diagnoses = atagOneApp.getDiagnostics();
 
-			JSONObject jsonObject = new JSONObject(diagnoses);
-			System.out.println(jsonObject.toString(4));
+			// Print diagnostics as JSON and keep the sequence.
+			System.out.println(JSONUtils.toJSON(diagnoses));
 			System.out.println();
 
 		} catch (IOException e) {

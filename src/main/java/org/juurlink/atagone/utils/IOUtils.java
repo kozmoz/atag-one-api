@@ -1,4 +1,4 @@
-package org.juurlink.atagone;
+package org.juurlink.atagone.utils;
 
 import java.io.BufferedReader;
 import java.io.Closeable;

@@ -1,4 +1,4 @@
-package org.juurlink.atagone;
+package org.juurlink.atagone.utils;
 
 import lombok.experimental.UtilityClass;
 
