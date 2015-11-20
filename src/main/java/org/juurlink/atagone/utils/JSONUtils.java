@@ -31,7 +31,7 @@ public class JSONUtils {
 			}
 			first = false;
 			result.append("\n    ");
-			result.append("\"").append(entry.getKey()).append("\": ");
+			result.append(entry.getKey()).append(": ");
 			if (entry.getValue() instanceof String) {
 				result.append("\"").append(entry.getValue()).append("\"");
 			} else {
