@@ -10,7 +10,9 @@ import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -24,6 +26,8 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.juurlink.atagone.domain.Configuration;
+import org.juurlink.atagone.domain.FORMAT;
 import org.juurlink.atagone.utils.IOUtils;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.StringUtils;
@@ -58,6 +62,30 @@ public class AtagOneApp {
 	 * HTTP Read timeout in milliseconds.
 	 */
 	private static final int HTTP_READ_TIMEOUT = 5000;
+
+	// Command line options.
+	private static final String OPTION_EMAIL = "email";
+	private static final String OPTION_PASSWORD = "password";
+	private static final String OPTION_HELP = "help";
+	private static final String OPTION_DEBUG = "debug";
+	private static final String OPTION_OUTPUT = "output";
+
+	// Result map keys.
+	private static final String VALUE_DEVICE_ID = "deviceId";
+	private static final String VALUE_DEVICE_ALIAS = "deviceAlias";
+	private static final String VALUE_LATEST_REPORT_TIME = "latestReportTime";
+	private static final String VALUE_CONNECTED_TO = "connectedTo";
+	private static final String VALUE_BURNING_HOURS = "burningHours";
+	private static final String VALUE_BOILER_HEATING_FOR = "boilerHeatingFor";
+	private static final String VALUE_FLAME_STATUS = "flameStatus";
+	private static final String VALUE_ROOM_TEMPERATURE = "roomTemperature";
+	private static final String VALUE_OUTSIDE_TEMPERATURE = "outsideTemperature";
+	private static final String VALUE_DHW_SETPOINT = "dhwSetpoint";
+	private static final String VALUE_DHW_WATER_TEMPERATURE = "dhwWaterTemperature";
+	private static final String VALUE_CH_SETPOINT = "chSetpoint";
+	private static final String VALUE_CH_WATER_TEMPERATURE = "chWaterTemperature";
+	private static final String VALUE_CH_WATER_PRESSURE = "chWaterPressure";
+	private static final String VALUE_CH_RETURN_TEMPERATURE = "chReturnTemperature";
 
 	@Setter
 	private String username;
@@ -104,8 +132,22 @@ public class AtagOneApp {
 			// Get diagnostics.
 			final Map<String, Object> diagnoses = atagOneApp.getDiagnostics();
 
-			// Print diagnostics as JSON and keep the sequence.
-			System.out.println(JSONUtils.toJSON(diagnoses));
+			if (configuration.getFormat() == FORMAT.CSV) {
+				// Print a list of CSV values.
+				System.out.print(diagnoses.get(VALUE_ROOM_TEMPERATURE));
+				System.out.print(" ");
+				System.out.print(diagnoses.get(VALUE_OUTSIDE_TEMPERATURE));
+				System.out.print(" ");
+				System.out.print(diagnoses.get(VALUE_CH_WATER_PRESSURE));
+				System.out.print(" ");
+				System.out.print(diagnoses.get(VALUE_CH_WATER_TEMPERATURE));
+				System.out.print(" ");
+				System.out.print(diagnoses.get(VALUE_CH_RETURN_TEMPERATURE));
+				System.out.print(" ");
+			} else {
+				// Print diagnostics as JSON and keep the sequence.
+				System.out.println(JSONUtils.toJSON(diagnoses));
+			}
 			System.out.println();
 
 		} catch (IOException e) {
@@ -140,18 +182,20 @@ public class AtagOneApp {
 	private static Configuration parseCommandLine(final String[] args) {
 
 		Options options = new Options();
-		options.addOption("e", "email", true, "User Portal email address");
-		options.addOption("p", "password", true, "User Portal password");
-		options.addOption("h", "help", false, "Print this help message");
-		options.addOption("d", "debug", false, "Print debugging information");
+		options.addOption("e", OPTION_EMAIL, true, "User Portal email address");
+		options.addOption("p", OPTION_PASSWORD, true, "User Portal password");
+		options.addOption("h", OPTION_HELP, false, "Print this help message");
+		options.addOption("d", OPTION_DEBUG, false, "Print debugging information");
+		options.addOption("o", OPTION_OUTPUT, true, "Output format; json or csv");
 
 		try {
 			CommandLineParser parser = new DefaultParser();
 			CommandLine cmd = parser.parse(options, args);
 
-			final String email = cmd.getOptionValue("e");
-			final String password = cmd.getOptionValue("p");
-			final boolean debug = cmd.hasOption("d");
+			final String email = cmd.getOptionValue(OPTION_EMAIL);
+			final String password = cmd.getOptionValue(OPTION_PASSWORD);
+			final boolean debug = cmd.hasOption(OPTION_DEBUG);
+			final String output = cmd.getOptionValue(OPTION_OUTPUT);
 
 			if (StringUtils.isBlank(email) || StringUtils.isBlank(password)) {
 				System.err.println("Username and password are both required");
@@ -166,7 +210,22 @@ public class AtagOneApp {
 				System.exit(0);
 			}
 
-			return new Configuration(email, password, debug);
+			// Determine output format (default = json).
+			FORMAT outputFormat = FORMAT.JSON;
+			if (!StringUtils.isBlank(output)) {
+				try {
+					outputFormat = FORMAT.valueOf(output.toUpperCase(Locale.US));
+				} catch (IllegalArgumentException e) {
+					System.err.println("Illegal output format specified '" + output + "'.");
+					System.out.println("Valid formats: " + Arrays.toString(FORMAT.values()) + ".");
+					System.out.println();
+
+					showCommandLineHelp(options);
+					System.exit(1);
+				}
+			}
+
+			return new Configuration(email, password, debug, outputFormat);
 
 		} catch (ParseException e) {
 
@@ -336,21 +395,24 @@ public class AtagOneApp {
 
 			// Scrape values from HTML page.
 			Map<String, Object> values = new LinkedHashMap<String, Object>();
-			values.put("deviceId", selectedDeviceId);
-			values.put("deviceAlias", getDiagnosticValueByLabel(html, String.class, "Apparaat alias", "Device alias"));
-			values.put("latestReportTime", getDiagnosticValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time"));
-			values.put("connectedTo", getDiagnosticValueByLabel(html, String.class, "Verbonden met", "Connected to"));
-			values.put("burningHours", getDiagnosticValueByLabel(html, BigDecimal.class, "Branduren", "Burning hours"));
-			values.put("boilerHeatingFor", getDiagnosticValueByLabel(html, String.class, "Ketel in bedrijf voor", "Boiler heating for"));
-			values.put("flameStatus", getDiagnosticValueByLabel(html, Boolean.class, "Brander status", "Flame status"));
-			values.put("roomTemperature", getDiagnosticValueByLabel(html, BigDecimal.class, "Kamertemperatuur", "Room temperature"));
-			values.put("outsideTemperature", getDiagnosticValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature"));
-			values.put("dhwSetpoint", getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint warmwater", "DHW setpoint"));
-			values.put("dhwWaterTemperature", getDiagnosticValueByLabel(html, BigDecimal.class, "Warmwatertemperatuur", "DHW water temperature"));
-			values.put("chSetpoint", getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint cv", "CH setpoint"));
-			values.put("chWaterTemperature", getDiagnosticValueByLabel(html, BigDecimal.class, "CV-aanvoertemperatuur", "CH water temperature"));
-			values.put("chWaterPressure", getDiagnosticValueByLabel(html, BigDecimal.class, "CV-waterdruk", "CH water pressure"));
-			values.put("chReturnTemperature", getDiagnosticValueByLabel(html, BigDecimal.class, "CV retourtemperatuur", "CH return temperature"));
+			values.put(VALUE_DEVICE_ID, selectedDeviceId);
+			values.put(VALUE_DEVICE_ALIAS, getDiagnosticValueByLabel(html, String.class, "Apparaat alias", "Device alias"));
+			values.put(VALUE_LATEST_REPORT_TIME, getDiagnosticValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time"));
+			values.put(VALUE_CONNECTED_TO, getDiagnosticValueByLabel(html, String.class, "Verbonden met", "Connected to"));
+			values.put(VALUE_BURNING_HOURS, getDiagnosticValueByLabel(html, BigDecimal.class, "Branduren", "Burning hours"));
+			values.put(VALUE_BOILER_HEATING_FOR, getDiagnosticValueByLabel(html, String.class, "Ketel in bedrijf voor", "Boiler heating for"));
+			values.put(VALUE_FLAME_STATUS, getDiagnosticValueByLabel(html, Boolean.class, "Brander status", "Flame status"));
+			values.put(VALUE_ROOM_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Kamertemperatuur", "Room temperature"));
+			values.put(VALUE_OUTSIDE_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature"));
+			values.put(VALUE_DHW_SETPOINT, getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint warmwater", "DHW setpoint"));
+			values
+				.put(VALUE_DHW_WATER_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Warmwatertemperatuur", "DHW water temperature"));
+			values.put(VALUE_CH_SETPOINT, getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint cv", "CH setpoint"));
+			values
+				.put(VALUE_CH_WATER_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV-aanvoertemperatuur", "CH water temperature"));
+			values.put(VALUE_CH_WATER_PRESSURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV-waterdruk", "CH water pressure"));
+			values
+				.put(VALUE_CH_RETURN_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV retourtemperatuur", "CH return temperature"));
 			return values;
 
 		} catch (IOException e) {
