@@ -58,6 +58,7 @@ public class AtagOneApp {
 	private static final Pattern PATTERN_DEVICE_ID = Pattern
 		.compile("[0-9]{4}-[0-9]{4}-[0-9]{4}_[0-9]{2}-[0-9]{2}-[0-9]{3}-[0-9]{3}", Pattern.DOTALL);
 	private static final Pattern PATTERN_ROOM_TEMPERATURE = Pattern.compile("room_temp.*?:([0-9\\.]{1,4})", Pattern.DOTALL);
+	private static final Pattern PATTERN_PAGE_ERROR = Pattern.compile("<li class=\"text-error\"><span>(.*?)</span>", Pattern.DOTALL);
 
 	/**
 	 * HTTP Connect timeout in milliseconds.
@@ -365,7 +366,9 @@ public class AtagOneApp {
 			selectedDeviceId = extractDeviceIdFromHtml(html);
 
 			if (StringUtils.isBlank(selectedDeviceId)) {
-				throw new IllegalStateException("No Device ID found, cannot continue.");
+				// Does the page contain an error message?
+				String errorMessage = extractPageErrorFromHtml(html);
+				throw new IllegalStateException(errorMessage == null ? "No Device ID found, cannot continue." : errorMessage);
 			}
 
 		} catch (IOException e) {
@@ -407,6 +410,12 @@ public class AtagOneApp {
 		try {
 			inputStreamStd = httpConnection.getInputStream();
 			final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
+
+			// Does the page contain an error message?
+			String errorMessage = extractPageErrorFromHtml(html);
+			if (errorMessage != null) {
+				throw new IllegalStateException(errorMessage);
+			}
 
 			// Scrape values from HTML page.
 			Map<String, Object> values = new LinkedHashMap<String, Object>();
@@ -496,8 +505,10 @@ public class AtagOneApp {
 
 			Float roomTemperature = extractRoomTemperature(html);
 			if (roomTemperature == null) {
-				throw new IllegalStateException("Cannot read current room temperature.");
 
+				// Does the page contain an error message?
+				String errorMessage = extractPageErrorFromHtml(html);
+				throw new IllegalStateException(errorMessage == null ? "Cannot read current room temperature." : errorMessage);
 			}
 			return roomTemperature;
 
@@ -560,7 +571,10 @@ public class AtagOneApp {
 			// Get request verification.
 			String requestVerificationToken = extractRequestVerificationTokenFromHtml(html);
 			if (StringUtils.isBlank(requestVerificationToken)) {
-				throw new IllegalStateException("No Request Verification Token received.");
+
+				// Does the page contain an error message?
+				String errorMessage = extractPageErrorFromHtml(html);
+				throw new IllegalStateException(errorMessage == null ? "No Request Verification Token received." : errorMessage);
 			}
 
 			return requestVerificationToken;
@@ -635,6 +649,23 @@ public class AtagOneApp {
 		} else {
 			return null;
 		}
+	}
+
+	/**
+	 * Extract page error message from HTML.
+	 *
+	 * @param html HTML
+	 * @return Error message or null when no message available on page
+	 */
+	@Nullable
+	protected String extractPageErrorFromHtml(@NonNull final String html) {
+		String result = null;
+		// <li class="text-error"><span>Your account has been locked out due to multiple failed login attempts. It will be unlocked in 12 minutes.</span>
+		final Matcher matcher = PATTERN_PAGE_ERROR.matcher(html);
+		if (matcher.find()) {
+			result = matcher.group(1);
+		}
+		return result;
 	}
 
 	/**

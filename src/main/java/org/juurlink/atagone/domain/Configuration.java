@@ -1,5 +1,7 @@
 package org.juurlink.atagone.domain;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import lombok.Value;
 
 /**
@@ -7,6 +9,8 @@ import lombok.Value;
  */
 @Value
 public class Configuration {
+	@Nullable
+	Float temperature;
 	private String email;
 	private String password;
 	private boolean debug;
