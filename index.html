@@ -13,9 +13,20 @@
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-    <title>ATAG One API</title>
+    <title>ATAG One thermostat API</title>
     <meta http-equiv="Content-Language" content="en"/>
-    <meta name="description" content="Get diagnostic data from your ATAG One."/>
+    <meta name="description" content="Get diagnostic data and set the temperature through the ATAG One thermostat portal."/>
+
+    <!-- Facebook meta data. -->
+    <meta property="og:url" content="http://atag.one"/>
+    <meta property="og:type" content="website"/>
+    <meta property="og:title" content="ATAG One thermostat API"/>
+    <meta property="og:description" content="Get diagnostic data and set the temperature through the ATAG One thermostat portal."/>
+    <meta property="og:image" content="atag-one-website-logo.png"/>
+    <meta property="og:locale" content="en_US"/>
+    <meta property="og:image:type" content="image/png"/>
+    <meta property="og:image:width" content="1290"/>
+    <meta property="og:image:height" content="930"/>
 
 </head>
 
@@ -25,6 +36,7 @@
 
         <header>
             <img src="images/atag-one-device.png" width="69" height="70" alt="" title="ATAG One thermostat"/>
+            <img src="images/atag-one-website-logo.png" width="69" height="70" alt="" title="ATAG One thermostat"/>
 
             <h1>ATAG One API</h1>
             <h2>Get diagnostic data from your ATAG One</h2>
@@ -145,7 +157,7 @@ $ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd
             </h3>
 
             <p>
-                To set the room temperature to 20.5 degrees celsius. <br />
+                To set the room temperature to 20.5 degrees celsius. <br/>
                 The response of the call is 18.6, which is the current room temperature.
             </p>
 
