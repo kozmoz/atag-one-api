@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -24,6 +24,14 @@
             <artifactId>lombok</artifactId>
             <version>1.16.4</version>
             <!-- It really needs to be provided, classes are modified at compile time. -->
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- JSR-308 @NonNull and @Nullable support. -->
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            <version>1.8.9</version>
             <scope>provided</scope>
         </dependency>
 
@@ -89,7 +97,8 @@
                 <version>1.8</version>
                 <executions>
                     <execution>
-                        <phase><!-- a lifecycle phase --></phase>
+                        <!-- a lifecycle phase -->
+                        <!--<phase></phase>-->
                         <configuration>
                             <target>
 

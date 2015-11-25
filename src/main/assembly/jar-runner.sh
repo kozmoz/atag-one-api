@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # - Concatenate the stub and the jar into a new executable:
 #
@@ -18,10 +18,10 @@ MYSELF=`which "$0" 2>/dev/null`
 [ $? -gt 0 -a -f "$0" ] && MYSELF="./$0"
 
 java=java
-if test -n "$JAVA_HOME"; then
+if [ "${JAVA_HOME:=xx}" != "xx" ] ; then
     java="$JAVA_HOME/bin/java"
 fi
 
-exec "$java" $java_args -jar $MYSELF "$@"
+exec "${java}" ${java_args:=} -jar ${MYSELF} "$@"
 
 exit $?
