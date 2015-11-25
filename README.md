@@ -25,7 +25,13 @@ A typical message looks like this:
 
 ## Usage
 
+Get diagnostic info:
+
     $ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd
+
+Set room temperature to 20.5 degrees celsius:
+
+    $ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd --set 20.5
 
 ## Disclaimer
 
