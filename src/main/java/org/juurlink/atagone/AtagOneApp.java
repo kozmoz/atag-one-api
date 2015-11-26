@@ -1,14 +1,10 @@
 package org.juurlink.atagone;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -29,7 +25,8 @@ import org.apache.commons.cli.ParseException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.FORMAT;
-import org.juurlink.atagone.utils.IOUtils;
+import org.juurlink.atagone.exceptions.AtagPageErrorException;
+import org.juurlink.atagone.utils.HTTPUtils;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.NumberUtils;
 import org.juurlink.atagone.utils.StringUtils;
@@ -50,7 +47,6 @@ public class AtagOneApp {
 	private static final String URL_DEVICE_SET_SETPOINT = "https://portal.atag-one.com/Home/DeviceSetSetpoint";
 
 	private static final String EXECUTABLE_NAME = "atag-one.sh";
-	private static final String USER_AGENT = "Mozilla/5.0 (compatible; AtagOneApp/0.1; http://atag.one/)";
 	private static final String ENCODING_UTF_8 = "UTF-8";
 
 	private static final Pattern PATTERN_REQUEST_VERIFICATION_TOKEN = Pattern
@@ -58,17 +54,6 @@ public class AtagOneApp {
 	private static final Pattern PATTERN_DEVICE_ID = Pattern
 		.compile("[0-9]{4}-[0-9]{4}-[0-9]{4}_[0-9]{2}-[0-9]{2}-[0-9]{3}-[0-9]{3}", Pattern.DOTALL);
 	private static final Pattern PATTERN_ROOM_TEMPERATURE = Pattern.compile("room_temp.*?:([0-9\\.]{1,4})", Pattern.DOTALL);
-	private static final Pattern PATTERN_PAGE_ERROR = Pattern.compile("<li class=\"text-error\"><span>(.*?)</span>", Pattern.DOTALL);
-
-	/**
-	 * HTTP Connect timeout in milliseconds.
-	 */
-	private static final int HTTP_CONNECT_TIMEOUT = 5000;
-
-	/**
-	 * HTTP Read timeout in milliseconds.
-	 */
-	private static final int HTTP_READ_TIMEOUT = 5000;
 
 	// Command line options.
 	private static final String OPTION_EMAIL = "email";
@@ -94,12 +79,6 @@ public class AtagOneApp {
 	private static final String VALUE_CH_WATER_TEMPERATURE = "chWaterTemperature";
 	private static final String VALUE_CH_WATER_PRESSURE = "chWaterPressure";
 	private static final String VALUE_CH_RETURN_TEMPERATURE = "chReturnTemperature";
-	private static final String REQUEST_METHOD_POST = "POST";
-	private static final String REQUEST_HEADER_CONTENT_TYPE = "Content-Type";
-	private static final String REQUEST_HEADER_CONTENT_LENGTH = "Content-Length";
-	private static final String REQUEST_HEADER_ACCEPT_CHARSET = "Accept-Charset";
-	private static final String REQUEST_HEADER_ACCEPT = "Accept";
-	private static final String REQUEST_HEADER_USER_AGENT = "User-Agent";
 	private static final int TEMPERATURE_MAX = 30;
 	private static final int TEMPERATURE_MIN = 4;
 
@@ -328,61 +307,24 @@ public class AtagOneApp {
 	/**
 	 * Login ATAG ONE portal and select first Device found.
 	 */
-	private void login() throws IOException {
+	private void login() throws IOException, AtagPageErrorException {
 
 		log.fine("POST authentication data: " + URL_LOGIN);
 
 		// We need a session (cookie) and a verification token, get them first.
 		String requestVerificationToken = getRequestVerificationToken(URL_LOGIN);
 
-		String urlParameters =
-			"__RequestVerificationToken=" + URLEncoder.encode(requestVerificationToken, ENCODING_UTF_8) +
-				"&Email=" + URLEncoder.encode(username, ENCODING_UTF_8) +
-				"&Password=" + URLEncoder.encode(password, ENCODING_UTF_8) +
-				"&RememberMe=false";
+		Map<String, String> params = new LinkedHashMap<String, String>();
+		params.put("__RequestVerificationToken", requestVerificationToken);
+		params.put("Email", username);
+		params.put("Password", password);
+		params.put("RememberMe", "false");
 
-		byte[] postData = urlParameters.getBytes(ENCODING_UTF_8);
+		String html = HTTPUtils.getPostPageContent(URL_LOGIN, params);
+		selectedDeviceId = extractDeviceIdFromHtml(html);
 
-		// HTTP(S) Connect.
-		HttpURLConnection httpConnection = createHttpConnection(URL_LOGIN);
-		httpConnection.setDoOutput(true);
-		httpConnection.setRequestMethod(REQUEST_METHOD_POST);
-		httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded; " + ENCODING_UTF_8);
-		httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_LENGTH, "" + postData.length);
-
-		OutputStream outputStream = null;
-		try {
-			outputStream = httpConnection.getOutputStream();
-			outputStream.write(postData);
-		} finally {
-			IOUtils.closeQuietly(outputStream);
-		}
-
-		InputStream inputStreamStd = null;
-		InputStream inputStreamErr = null;
-		try {
-			inputStreamStd = httpConnection.getInputStream();
-			final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
-			selectedDeviceId = extractDeviceIdFromHtml(html);
-
-			if (StringUtils.isBlank(selectedDeviceId)) {
-				// Does the page contain an error message?
-				String errorMessage = extractPageErrorFromHtml(html);
-				throw new IllegalStateException(errorMessage == null ? "No Device ID found, cannot continue." : errorMessage);
-			}
-
-		} catch (IOException e) {
-
-			inputStreamErr = httpConnection.getErrorStream();
-			final String html = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
-
-			// Log debug details in case of error.
-			log.fine(html);
-			throw e;
-
-		} finally {
-			IOUtils.closeQuietly(inputStreamStd);
-			IOUtils.closeQuietly(inputStreamErr);
+		if (StringUtils.isBlank(selectedDeviceId)) {
+			throw new IllegalStateException("No Device ID found, cannot continue.");
 		}
 	}
 
@@ -393,7 +335,7 @@ public class AtagOneApp {
 	 * @throws IOException              in case of connection error
 	 * @throws IllegalArgumentException when no device selected
 	 */
-	private Map<String, Object> getDiagnostics() throws IOException, IllegalArgumentException {
+	private Map<String, Object> getDiagnostics() throws IOException, IllegalArgumentException, AtagPageErrorException {
 
 		if (StringUtils.isBlank(selectedDeviceId)) {
 			throw new IllegalArgumentException("No Device selected, cannot get diagnostics.");
@@ -403,55 +345,29 @@ public class AtagOneApp {
 		log.fine("GET diagnostics: " + urlString);
 
 		// HTTP(S) Connect.
-		HttpURLConnection httpConnection = createHttpConnection(urlString);
+		final String html = HTTPUtils.getPageContent(urlString);
 
-		InputStream inputStreamStd = null;
-		InputStream inputStreamErr = null;
-		try {
-			inputStreamStd = httpConnection.getInputStream();
-			final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
-
-			// Does the page contain an error message?
-			String errorMessage = extractPageErrorFromHtml(html);
-			if (errorMessage != null) {
-				throw new IllegalStateException(errorMessage);
-			}
-
-			// Scrape values from HTML page.
-			Map<String, Object> values = new LinkedHashMap<String, Object>();
-			values.put(VALUE_DEVICE_ID, selectedDeviceId);
-			values.put(VALUE_DEVICE_ALIAS, getDiagnosticValueByLabel(html, String.class, "Apparaat alias", "Device alias"));
-			values.put(VALUE_LATEST_REPORT_TIME, getDiagnosticValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time"));
-			values.put(VALUE_CONNECTED_TO, getDiagnosticValueByLabel(html, String.class, "Verbonden met", "Connected to"));
-			values.put(VALUE_BURNING_HOURS, getDiagnosticValueByLabel(html, BigDecimal.class, "Branduren", "Burning hours"));
-			values.put(VALUE_BOILER_HEATING_FOR, getDiagnosticValueByLabel(html, String.class, "Ketel in bedrijf voor", "Boiler heating for"));
-			values.put(VALUE_FLAME_STATUS, getDiagnosticValueByLabel(html, Boolean.class, "Brander status", "Flame status"));
-			values.put(VALUE_ROOM_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Kamertemperatuur", "Room temperature"));
-			values.put(VALUE_OUTSIDE_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature"));
-			values.put(VALUE_DHW_SETPOINT, getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint warmwater", "DHW setpoint"));
-			values
-				.put(VALUE_DHW_WATER_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Warmwatertemperatuur", "DHW water temperature"));
-			values.put(VALUE_CH_SETPOINT, getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint cv", "CH setpoint"));
-			values
-				.put(VALUE_CH_WATER_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV-aanvoertemperatuur", "CH water temperature"));
-			values.put(VALUE_CH_WATER_PRESSURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV-waterdruk", "CH water pressure"));
-			values
-				.put(VALUE_CH_RETURN_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV retourtemperatuur", "CH return temperature"));
-			return values;
-
-		} catch (IOException e) {
-
-			inputStreamErr = httpConnection.getErrorStream();
-			final String html = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
-
-			// Log debug details in case of error.
-			log.fine(html);
-			throw e;
-
-		} finally {
-			IOUtils.closeQuietly(inputStreamStd);
-			IOUtils.closeQuietly(inputStreamErr);
-		}
+		// Scrape values from HTML page.
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put(VALUE_DEVICE_ID, selectedDeviceId);
+		values.put(VALUE_DEVICE_ALIAS, getDiagnosticValueByLabel(html, String.class, "Apparaat alias", "Device alias"));
+		values.put(VALUE_LATEST_REPORT_TIME, getDiagnosticValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time"));
+		values.put(VALUE_CONNECTED_TO, getDiagnosticValueByLabel(html, String.class, "Verbonden met", "Connected to"));
+		values.put(VALUE_BURNING_HOURS, getDiagnosticValueByLabel(html, BigDecimal.class, "Branduren", "Burning hours"));
+		values.put(VALUE_BOILER_HEATING_FOR, getDiagnosticValueByLabel(html, String.class, "Ketel in bedrijf voor", "Boiler heating for"));
+		values.put(VALUE_FLAME_STATUS, getDiagnosticValueByLabel(html, Boolean.class, "Brander status", "Flame status"));
+		values.put(VALUE_ROOM_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Kamertemperatuur", "Room temperature"));
+		values.put(VALUE_OUTSIDE_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature"));
+		values.put(VALUE_DHW_SETPOINT, getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint warmwater", "DHW setpoint"));
+		values
+			.put(VALUE_DHW_WATER_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Warmwatertemperatuur", "DHW water temperature"));
+		values.put(VALUE_CH_SETPOINT, getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint cv", "CH setpoint"));
+		values
+			.put(VALUE_CH_WATER_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV-aanvoertemperatuur", "CH water temperature"));
+		values.put(VALUE_CH_WATER_PRESSURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV-waterdruk", "CH water pressure"));
+		values
+			.put(VALUE_CH_RETURN_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV retourtemperatuur", "CH return temperature"));
+		return values;
 	}
 
 	/**
@@ -460,8 +376,9 @@ public class AtagOneApp {
 	 * @param pTemperature Device SetPoint temperature
 	 * @return current room temperature
 	 */
-	private float setDeviceSetPoint(float pTemperature) throws IOException, IllegalArgumentException {
+	private float setDeviceSetPoint(float pTemperature) throws IOException, IllegalArgumentException, AtagPageErrorException {
 
+		// Test parameters.
 		float roundedTemperature = NumberUtils.roundHalf(pTemperature);
 		if (roundedTemperature < TEMPERATURE_MIN || roundedTemperature > TEMPERATURE_MAX) {
 			throw new IllegalArgumentException(
@@ -476,82 +393,30 @@ public class AtagOneApp {
 		final String requestVerificationToken = getRequestVerificationToken(URL_DEVICE_HOME);
 
 		// https://portal.atag-one.com/Home/DeviceSetSetpoint/6808-1401-3109_15-30-001-544?temperature=18.5
-		final String urlString = URL_DEVICE_SET_SETPOINT + "/" + selectedDeviceId + "?temperature=" + roundedTemperature;
-		log.fine("POST setDeviceSetPoint: " + urlString);
+		final String newUrl = URL_DEVICE_SET_SETPOINT + "/" + selectedDeviceId + "?temperature=" + roundedTemperature;
+		log.fine("POST setDeviceSetPoint: " + newUrl);
 
-		final String postDataString = "__RequestVerificationToken=" + URLEncoder.encode(requestVerificationToken, ENCODING_UTF_8);
-		byte[] postData = postDataString.getBytes(ENCODING_UTF_8);
+		Map<String, String> params = new LinkedHashMap<String, String>();
+		params.put("__RequestVerificationToken", requestVerificationToken);
 
-		// HTTP(S) Connect.
-		HttpURLConnection httpConnection = createHttpConnection(urlString);
-		httpConnection.setDoOutput(true);
-		httpConnection.setRequestMethod(REQUEST_METHOD_POST);
-		httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded; " + ENCODING_UTF_8);
-		httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_LENGTH, "" + postData.length);
+		final String html = HTTPUtils.getPostPageContent(newUrl, params);
 
-		OutputStream outputStream = null;
-		try {
-			outputStream = httpConnection.getOutputStream();
-			outputStream.write(postData);
-		} finally {
-			IOUtils.closeQuietly(outputStream);
-		}
-
-		InputStream inputStreamStd = null;
-		InputStream inputStreamErr = null;
-		try {
-			inputStreamStd = httpConnection.getInputStream();
-			final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
-
-			Float roomTemperature = extractRoomTemperature(html);
-			if (roomTemperature == null) {
-
-				// Does the page contain an error message?
-				String errorMessage = extractPageErrorFromHtml(html);
-				throw new IllegalStateException(errorMessage == null ? "Cannot read current room temperature." : errorMessage);
-			}
+		Float roomTemperature = extractRoomTemperature(html);
+		if (roomTemperature != null) {
 			return roomTemperature;
-
-		} catch (IOException e) {
-
-			inputStreamErr = httpConnection.getErrorStream();
-			final String html = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
-
-			// Log debug details in case of error.
-			log.fine(html);
-			throw e;
-
-		} finally {
-			IOUtils.closeQuietly(inputStreamStd);
-			IOUtils.closeQuietly(inputStreamErr);
 		}
-	}
 
-	/**
-	 * Create HTTP(s) connection.
-	 *
-	 * @param urlString URL to connect to.
-	 */
-	private HttpURLConnection createHttpConnection(final String urlString) throws IOException {
-		HttpURLConnection httpConnection = (HttpURLConnection) new URL(urlString).openConnection();
-
-		// Complete list of HTTP header fields:
-		// https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
-		httpConnection.setRequestProperty(REQUEST_HEADER_ACCEPT_CHARSET, ENCODING_UTF_8);
-		httpConnection.setRequestProperty(REQUEST_HEADER_ACCEPT, "*/*");
-		httpConnection.setRequestProperty(REQUEST_HEADER_USER_AGENT, USER_AGENT);
-		httpConnection.setConnectTimeout(HTTP_CONNECT_TIMEOUT);
-		httpConnection.setReadTimeout(HTTP_READ_TIMEOUT);
-		return httpConnection;
+		throw new IllegalStateException("Cannot read current room temperature.");
 	}
 
 	/**
 	 * Open device home page and return requests verification token.          ;
 	 *
+	 * @return request verification token
 	 * @throws IOException           When error connecting to ATAG ONE portal
 	 * @throws IllegalStateException When session cannot be started
 	 */
-	protected String getRequestVerificationToken(@NonNull String url) throws IOException, IllegalStateException {
+	protected String getRequestVerificationToken(@NonNull String url) throws IOException, IllegalStateException, AtagPageErrorException {
 
 		log.fine("getRequestVerificationToken(" + url + ")");
 
@@ -559,39 +424,15 @@ public class AtagOneApp {
 
 		// Try to replace device id, ignore when no replace string available.
 		final String newUrl = url.replace("{0}", StringUtils.defaultString(selectedDeviceId));
-		HttpURLConnection httpConnection = createHttpConnection(newUrl);
+		String html = HTTPUtils.getPageContent(newUrl);
 
-		// HTTPS Connect, and get login page HTML.
-		InputStream inputStreamStd = null;
-		InputStream inputStreamErr = null;
-		try {
-			inputStreamStd = httpConnection.getInputStream();
-			final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
-
-			// Get request verification.
-			String requestVerificationToken = extractRequestVerificationTokenFromHtml(html);
-			if (StringUtils.isBlank(requestVerificationToken)) {
-
-				// Does the page contain an error message?
-				String errorMessage = extractPageErrorFromHtml(html);
-				throw new IllegalStateException(errorMessage == null ? "No Request Verification Token received." : errorMessage);
-			}
-
+		// Get request verification.
+		String requestVerificationToken = extractRequestVerificationTokenFromHtml(html);
+		if (!StringUtils.isBlank(requestVerificationToken)) {
 			return requestVerificationToken;
-
-		} catch (IOException e) {
-
-			inputStreamErr = httpConnection.getErrorStream();
-			final String html = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
-
-			// Log debug details in case of error.
-			log.fine(html);
-			throw e;
-
-		} finally {
-			IOUtils.closeQuietly(inputStreamStd);
-			IOUtils.closeQuietly(inputStreamErr);
 		}
+
+		throw new IllegalStateException("No Request Verification Token received.");
 	}
 
 	/**
@@ -649,23 +490,6 @@ public class AtagOneApp {
 		} else {
 			return null;
 		}
-	}
-
-	/**
-	 * Extract page error message from HTML.
-	 *
-	 * @param html HTML
-	 * @return Error message or null when no message available on page
-	 */
-	@Nullable
-	protected String extractPageErrorFromHtml(@NonNull final String html) {
-		String result = null;
-		// <li class="text-error"><span>Your account has been locked out due to multiple failed login attempts. It will be unlocked in 12 minutes.</span>
-		final Matcher matcher = PATTERN_PAGE_ERROR.matcher(html);
-		if (matcher.find()) {
-			result = matcher.group(1);
-		}
-		return result;
 	}
 
 	/**
