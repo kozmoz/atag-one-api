@@ -5,14 +5,25 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.juurlink.atagone.domain.DeviceInfo;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 
 import lombok.NonNull;
@@ -47,6 +58,10 @@ public class HTTPUtils {
 	 * HTTP Read timeout in milliseconds.
 	 */
 	private static final int HTTP_READ_TIMEOUT = 5000;
+
+	// De computer kan meerdere IP adressen hebben (en meerdere interfaces)
+	private static final List<InetAddress> localHost = new ArrayList<InetAddress>();
+	private static final int TIMEOUT_REACHABLE = 1000;
 
 	/**
 	 * Get GET page content.
@@ -90,6 +105,149 @@ public class HTTPUtils {
 		}
 
 		return toPageResponse(httpConnection);
+	}
+
+	/**
+	 * Get system Hostname, IP - and MAC address.
+	 *
+	 * @return DeviceInfo Hostname, IP - and MAC address
+	 * @throws IllegalStateException When no network interfaces found
+	 * @throws SocketException       When not able to get network interface
+	 */
+	public static DeviceInfo getDeviceInfo() throws IllegalStateException, SocketException {
+
+		// Search for network interfaces.
+		final List<InetAddress> localHosts = getLocalHosts();
+		if (localHosts.isEmpty()) {
+			throw new IllegalStateException("Cannot determine local IP address.");
+		}
+
+		// Get the first one (in case of eth0 and eth1, get eth0).
+		InetAddress inetAddress = localHosts.get(0);
+		NetworkInterface network = NetworkInterface.getByInetAddress(inetAddress);
+		byte[] mac = network.getHardwareAddress();
+
+		// Convert mac address to human readable string.
+		StringBuilder macAddressString = new StringBuilder();
+		for (int i = 0; i < mac.length; i++) {
+			macAddressString.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+		}
+
+		return new DeviceInfo(inetAddress.getHostName(), inetAddress, macAddressString.toString());
+	}
+
+	/**
+	 * Get device IP address, or "localhost" in case the AP address cannot be determined.
+	 * <p/>
+	 * InetAddress.getLocalHost() doesn't do what most people think that it does. It actually returns the hostname of the machine, and the IP address
+	 * associated with that hostname. This may be the address used to connect to the outside world. It may not. It just depends on how you have your
+	 * system configured.
+	 * <p/>
+	 * For instance, looking at a Linux box, if you have the following configuration:<br />
+	 * <pre>
+	 *
+	 * hostname 'myhostname'
+	 *
+	 * /etc/nsswitch.conf:
+	 *
+	 * hosts:      files dns
+	 *
+	 * (i.e. look to the hosts file before checking DNS when resolving hostnames)
+	 *
+	 * /etc/hosts:
+	 * 127.0.0.1 localhost localhost.localdomain myhostname
+	 *
+	 * </pre>
+	 * then InetAddress.getLocalHost() will get the hostname ('myhostname'), resolve the hostname (which will return 127.0.0.1, since that's the IP
+	 * address that will resolve from 'myhostname'), and then return an InetAddress object for hostname 'myhostname' with IP address '127.0.0.1'.
+	 *
+	 * @return List of ip addresses found
+	 */
+	public static synchronized List<InetAddress> getLocalHosts() {
+
+		// Cached results.
+		if (localHost.size() != 0) {
+			return localHost;
+		}
+
+		try {
+			localHost.clear();
+
+			Map<String, InetAddress> addresses = new HashMap<String, InetAddress>();
+
+			Enumeration iFaces = NetworkInterface.getNetworkInterfaces();
+			for (; iFaces.hasMoreElements(); ) {
+
+				NetworkInterface iface = (NetworkInterface) iFaces.nextElement();
+
+				// Ignore local and virtual interfaces.
+				if (!iface.isUp() || iface.isVirtual() || iface.isLoopback() || iface.isPointToPoint()) {
+					continue;
+				}
+
+				// getName() gives short name.
+				String ifaceName = iface.getName().toLowerCase();
+				if (ifaceName.startsWith("lo") || ifaceName.startsWith("vmnet") || ifaceName.startsWith("vboxnet")) {
+					// Skip local, VMWare and VirtualBox.
+					continue;
+				}
+
+				for (Enumeration ips = iface.getInetAddresses(); ips.hasMoreElements(); ) {
+					InetAddress ip = (InetAddress) ips.nextElement();
+					if (ip instanceof Inet4Address) {
+
+						// Ignore localhost, self-assigned and BlueTooth (which starts probably with 172).
+						String hostAddress = ip.getHostAddress();
+						if (hostAddress.startsWith("169.254") || hostAddress.startsWith("127") || hostAddress.startsWith("172")) {
+							log.info("Skip localhost address or 172 range: " + hostAddress);
+							continue;
+						}
+
+						try {
+							if (ip.isReachable(TIMEOUT_REACHABLE)) {
+								addresses.put(ifaceName, ip);
+							}
+						} catch (IOException e) {
+							log.fine("Skip unreachable IP: " + ip);
+						}
+					}
+				}
+			}
+
+			// Cache addresses found.
+			if (addresses.size() == 1) {
+
+				localHost.addAll(addresses.values());
+				return localHost;
+
+			} else if (addresses.size() > 1) {
+
+				// More then one address found, order list bij name (eth0 will be on top, above eth1).
+				List<String> interfaceNames = new ArrayList<String>(addresses.keySet());
+				StringUtils.sort(interfaceNames);
+
+				for (String interfaceName : interfaceNames) {
+					localHost.add(addresses.get(interfaceName));
+				}
+				return localHost;
+			}
+		} catch (SocketException e) {
+			log.log(Level.WARNING, "Error determining local host address.", e);
+			// Continue, try alternative method.
+		}
+
+		try {
+			localHost.add(InetAddress.getLocalHost());
+		} catch (UnknownHostException e) {
+			log.log(Level.INFO, "Error getting localhost address.", e);
+			try {
+				localHost.add(InetAddress.getByName("127.0.0.1"));
+			} catch (UnknownHostException e1) {
+				log.log(Level.WARNING, "Localhost 127.0.0.1 unknown", e1);
+			}
+		}
+
+		return localHost;
 	}
 
 	/**

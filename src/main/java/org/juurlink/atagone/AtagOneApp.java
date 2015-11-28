@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -25,8 +28,10 @@ import org.apache.commons.cli.ParseException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.FORMAT;
+import org.juurlink.atagone.domain.OneInfo;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.utils.HTTPUtils;
+import org.juurlink.atagone.utils.IOUtils;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.NumberUtils;
 import org.juurlink.atagone.utils.StringUtils;
@@ -190,7 +195,7 @@ public class AtagOneApp {
 	 * @param args Command line arguments
 	 * @return Configuration object with username, password and other settings
 	 */
-	private static Configuration parseCommandLine(final String[] args) {
+	protected static Configuration parseCommandLine(final String[] args) {
 
 		Options options = new Options();
 		options.addOption("e", OPTION_EMAIL, true, "User Portal email address");
@@ -279,7 +284,7 @@ public class AtagOneApp {
 	/**
 	 * Show command line help.
 	 */
-	private static void showCommandLineHelp(final Options options) {
+	protected static void showCommandLineHelp(final Options options) {
 		// Automatically generate the help statement.
 		HelpFormatter formatter = new HelpFormatter();
 		formatter.printHelp(EXECUTABLE_NAME, options);
@@ -288,7 +293,7 @@ public class AtagOneApp {
 	/**
 	 * Configure logging.
 	 */
-	private static void configureLogger() {
+	protected static void configureLogger() {
 
 		final ConsoleHandler handler = new ConsoleHandler();
 		handler.setLevel(Level.ALL);
@@ -307,7 +312,7 @@ public class AtagOneApp {
 	/**
 	 * Login ATAG ONE portal and select first Device found.
 	 */
-	private void login() throws IOException, AtagPageErrorException {
+	protected void login() throws IOException, AtagPageErrorException {
 
 		log.fine("POST authentication data: " + URL_LOGIN);
 
@@ -335,7 +340,7 @@ public class AtagOneApp {
 	 * @throws IOException              in case of connection error
 	 * @throws IllegalArgumentException when no device selected
 	 */
-	private Map<String, Object> getDiagnostics() throws IOException, IllegalArgumentException, AtagPageErrorException {
+	protected Map<String, Object> getDiagnostics() throws IOException, IllegalArgumentException, AtagPageErrorException {
 
 		if (StringUtils.isBlank(selectedDeviceId)) {
 			throw new IllegalArgumentException("No Device selected, cannot get diagnostics.");
@@ -376,7 +381,7 @@ public class AtagOneApp {
 	 * @param pTemperature Device SetPoint temperature
 	 * @return current room temperature
 	 */
-	private float setDeviceSetPoint(float pTemperature) throws IOException, IllegalArgumentException, AtagPageErrorException {
+	protected float setDeviceSetPoint(float pTemperature) throws IOException, IllegalArgumentException, AtagPageErrorException {
 
 		// Test parameters.
 		float roundedTemperature = NumberUtils.roundHalf(pTemperature);
@@ -433,6 +438,40 @@ public class AtagOneApp {
 		}
 
 		throw new IllegalStateException("No Request Verification Token received.");
+	}
+
+	protected OneInfo searchOnes() throws IOException {
+
+		final int PORT = 11000;
+
+		// Listen to all UDP packets send to port 11,000.
+		DatagramSocket datagramSocket = null;
+
+		try {
+			datagramSocket = new DatagramSocket(PORT, InetAddress.getByName("0.0.0.0"));
+			datagramSocket.setBroadcast(true);
+			datagramSocket.setSoTimeout(30000);
+
+			// Receive.
+			byte[] receiveData = new byte[37];
+			final DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
+			datagramSocket.receive(datagramPacket);
+
+			final InetAddress oneInetAddress = datagramPacket.getAddress();
+			final String receivedMessage = new String(datagramPacket.getData(), "UTF-8");
+
+			if (receivedMessage.startsWith("ONE ")) {
+				String deviceId = receivedMessage.split(" ")[1];
+				return new OneInfo(oneInetAddress, deviceId);
+			}
+			return null;
+
+		} finally {
+			if (datagramSocket != null) {
+				datagramSocket.disconnect();
+				IOUtils.closeQuietly(datagramSocket);
+			}
+		}
 	}
 
 	/**

@@ -1,5 +1,10 @@
 package org.juurlink.atagone.utils;
 
+import java.text.Collator;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+
 import lombok.experimental.UtilityClass;
 
 /**
@@ -21,4 +26,19 @@ public class StringUtils {
 	public static String defaultString(final String string) {
 		return string != null ? string : "";
 	}
+
+	/**
+	 * Sort list, ignore upper and lower case.
+	 *
+	 * @param stringList List to sort
+	 */
+	public static void sort(List<String> stringList) {
+		// Default ASCII sort.
+		Collator collator = Collator.getInstance(Locale.US);
+		// Ignore upper and lowercase.
+		collator.setStrength(Collator.PRIMARY);
+
+		Collections.sort(stringList, collator);
+	}
+
 }

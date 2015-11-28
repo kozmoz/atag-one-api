@@ -1,11 +1,13 @@
 package org.juurlink.atagone.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.junit.Test;
+import org.juurlink.atagone.domain.DeviceInfo;
 
 public class HTTPUtilsTest {
 
@@ -35,5 +37,14 @@ public class HTTPUtilsTest {
 		String message = HTTPUtils.extractPageErrorFromHtml(html);
 		String expected = "Your account has been locked out due to multiple failed login attempts. It will be unlocked in 12 minutes.";
 		assertEquals(expected, message);
+	}
+
+	@Test
+	public void testGetMacAddress() throws Exception {
+		final DeviceInfo deviceInfo = HTTPUtils.getDeviceInfo();
+		assertNotNull(deviceInfo);
+		assertNotNull(deviceInfo.getName());
+		assertNotNull(deviceInfo.getIp());
+		assertNotNull(deviceInfo.getMac());
 	}
 }

@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.juurlink.atagone.domain.OneInfo;
 
 public class AtagOneAppTest {
 
@@ -104,5 +105,11 @@ public class AtagOneAppTest {
 		assertEquals(8, atagOneApp.extractRoomTemperature(html), 0);
 		html = "\"{\\\"ch_control_mode\\\":0,\\\"temp_influenced\\\":false,\\\"xxxx_temp\\\":18.5,\\\"ch_mode_temp\\\":18.0,\\\"is_heating\\\":false,\\\"vacationPlanned\\\":false,\\\"temp_increment\\\":null,\\\"round_half\\\":false,\\\"schedule_base_temp\\\":null,\\\"outside_temp\\\":null}\"";
 		assertNull(atagOneApp.extractRoomTemperature(html));
+	}
+
+	@Test
+	public void testSearchOnes() throws Exception {
+		final OneInfo oneInfo = atagOneApp.searchOnes();
+		System.out.println("oneInfo = " + oneInfo);
 	}
 }
