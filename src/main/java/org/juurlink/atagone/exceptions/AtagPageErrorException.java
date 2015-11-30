@@ -1,12 +1,6 @@
 package org.juurlink.atagone.exceptions;
 
 public class AtagPageErrorException extends Exception {
-	/**
-	 * Constructs an {@code IOException} with {@code null} as its error detail message.
-	 */
-	public AtagPageErrorException() {
-		super();
-	}
 
 	/**
 	 * Constructs an {@code IOException} with the specified detail message.

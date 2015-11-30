@@ -22,7 +22,9 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.juurlink.atagone.domain.DeviceInfo;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 
@@ -310,7 +312,7 @@ public class HTTPUtils {
 	 * @return Error message or null when no message available on page
 	 */
 	@Nullable
-	protected static String extractPageErrorFromHtml(@NonNull final String html) {
+	protected static String extractPageErrorFromHtml(@Nonnull @NonNull final String html) {
 		String result = null;
 		// <li class="text-error"><span>Your account has been locked out due to multiple failed login attempts. It will be unlocked in 12 minutes.</span>
 		final Matcher matcher = PATTERN_PAGE_ERROR.matcher(html);

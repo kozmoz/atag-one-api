@@ -4,6 +4,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -13,12 +16,13 @@ import lombok.experimental.UtilityClass;
 public class JSONUtils {
 
 	/**
-	 * Convert Java Map to JSON String.
+	 * Convert Java Map to JSON String, pretty printed.
 	 *
 	 * @param map Java Map
 	 * @return JSON as String
 	 */
-	public static String toJSON(Map map) {
+	@Nonnull
+	public static String toJSON(@Nonnull @NonNull Map map) {
 		StringBuilder result = new StringBuilder();
 		result.append("{");
 

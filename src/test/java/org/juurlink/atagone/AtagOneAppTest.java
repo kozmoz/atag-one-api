@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.math.BigDecimal;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.juurlink.atagone.domain.OneInfo;
 
@@ -96,6 +97,7 @@ public class AtagOneAppTest {
 	}
 
 	@Test
+	@SuppressWarnings("ConstantConditions")
 	public void testExtractRoomTemperature() throws Exception {
 		String html = "\"{\\\"ch_control_mode\\\":0,\\\"temp_influenced\\\":false,\\\"room_temp\\\":18.0,\\\"ch_mode_temp\\\":18.0,\\\"is_heating\\\":false,\\\"vacationPlanned\\\":false,\\\"temp_increment\\\":null,\\\"round_half\\\":false,\\\"schedule_base_temp\\\":null,\\\"outside_temp\\\":null}\"";
 		assertEquals(18, atagOneApp.extractRoomTemperature(html), 0);
@@ -108,6 +110,7 @@ public class AtagOneAppTest {
 	}
 
 	@Test
+	@Ignore("Cannot test this in a Junit test")
 	public void testSearchOnes() throws Exception {
 		final OneInfo oneInfo = atagOneApp.searchOnes();
 		System.out.println("oneInfo = " + oneInfo);

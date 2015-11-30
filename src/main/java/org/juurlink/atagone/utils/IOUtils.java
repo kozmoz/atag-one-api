@@ -1,7 +1,5 @@
 package org.juurlink.atagone.utils;
 
-import com.sun.istack.internal.NotNull;
-
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
@@ -9,9 +7,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -40,8 +39,8 @@ public class IOUtils {
 	 * @param encoding Character encoding, ie UTF-8
 	 * @throws UnsupportedEncodingException If the named charset is not supported
 	 */
-	@NonNull
-	public static String toString(@Nullable final InputStream stream, @NotNull final String encoding) throws IOException {
+	@Nonnull
+	public static String toString(@Nullable final InputStream stream, @Nonnull @NonNull final String encoding) throws IOException {
 		if (stream == null) {
 			return "";
 		}

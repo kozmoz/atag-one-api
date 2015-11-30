@@ -8,16 +8,22 @@ import java.net.CookiePolicy;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -25,7 +31,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.FORMAT;
 import org.juurlink.atagone.domain.OneInfo;
@@ -67,6 +72,7 @@ public class AtagOneApp {
 	private static final String OPTION_DEBUG = "debug";
 	private static final String OPTION_OUTPUT = "output";
 	private static final String OPTION_SET = "set";
+	private static final String OPTION_VERSION = "version";
 
 	// Result map keys.
 	private static final String VALUE_DEVICE_ID = "deviceId";
@@ -86,6 +92,10 @@ public class AtagOneApp {
 	private static final String VALUE_CH_RETURN_TEMPERATURE = "chReturnTemperature";
 	private static final int TEMPERATURE_MAX = 30;
 	private static final int TEMPERATURE_MIN = 4;
+
+	private static final String PROPERTY_NAME_MAVEN_APPLICATION_VERSION = "applicationVersion";
+	private static final String PROPERTY_NAME_MAVEN_BUILD_DATE = "buildDate";
+	private static final String META_INF_MANIFEST_MF = "/META-INF/MANIFEST.MF";
 
 	@Setter
 	private String username;
@@ -204,6 +214,7 @@ public class AtagOneApp {
 		options.addOption("d", OPTION_DEBUG, false, "Print debugging information");
 		options.addOption("o", OPTION_OUTPUT, true, "Output format; json or csv");
 		options.addOption("s", OPTION_SET, true, "Set temperature in degrees celsius between " + TEMPERATURE_MIN + " and " + TEMPERATURE_MAX);
+		options.addOption("v", OPTION_VERSION, false, "Version info and build timestamp");
 
 		try {
 			CommandLineParser parser = new DefaultParser();
@@ -215,8 +226,15 @@ public class AtagOneApp {
 			final String output = cmd.getOptionValue(OPTION_OUTPUT);
 			final boolean hasTemperature = cmd.hasOption(OPTION_SET);
 			final String temperatureString = cmd.getOptionValue(OPTION_SET);
+			final boolean hasVersion = cmd.hasOption(OPTION_VERSION);
 			@Nullable
 			Float temperature = null;
+
+			// Display version info.
+			if (hasVersion) {
+				displayVersionInfo();
+				System.exit(0);
+			}
 
 			if (StringUtils.isBlank(email) || StringUtils.isBlank(password)) {
 				System.err.println("Username and password are both required");
@@ -279,6 +297,39 @@ public class AtagOneApp {
 		}
 
 		throw new IllegalStateException("Program should have been exited");
+	}
+
+	/**
+	 * Display version info and build timestamp.
+	 */
+	private static void displayVersionInfo() {
+
+		String mavenApplicationVersion = "UNKNOWN";
+		String mavenBuildDate = "UNKNOWN";
+
+		try {
+			Class clazz = AtagOneApp.class;
+			String className = clazz.getSimpleName() + ".class";
+			String classPath = clazz.getResource(className).toString();
+			if (classPath.startsWith("jar")) {
+
+				// Class from JAR.
+				String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + META_INF_MANIFEST_MF;
+				Attributes attributes = new Manifest(new URL(manifestPath).openStream()).getMainAttributes();
+
+				if (attributes.getValue(PROPERTY_NAME_MAVEN_APPLICATION_VERSION) != null &&
+					attributes.getValue(PROPERTY_NAME_MAVEN_BUILD_DATE) != null) {
+					mavenApplicationVersion = attributes.getValue(PROPERTY_NAME_MAVEN_APPLICATION_VERSION);
+					mavenBuildDate = attributes.getValue(PROPERTY_NAME_MAVEN_BUILD_DATE);
+				}
+			}
+		} catch (final IOException e) {
+			mavenBuildDate = mavenApplicationVersion = "Read Error";
+		}
+
+		System.out.println("Version: " + mavenApplicationVersion);
+		System.out.println("Build timestamp:  " + mavenBuildDate);
+		System.out.println();
 	}
 
 	/**
@@ -421,7 +472,7 @@ public class AtagOneApp {
 	 * @throws IOException           When error connecting to ATAG ONE portal
 	 * @throws IllegalStateException When session cannot be started
 	 */
-	protected String getRequestVerificationToken(@NonNull String url) throws IOException, IllegalStateException, AtagPageErrorException {
+	protected String getRequestVerificationToken(@Nonnull @NonNull String url) throws IOException, IllegalStateException, AtagPageErrorException {
 
 		log.fine("getRequestVerificationToken(" + url + ")");
 
@@ -481,7 +532,7 @@ public class AtagOneApp {
 	 * @return RequestVerificationToken or null when not found in HTML
 	 */
 	@Nullable
-	protected String extractRequestVerificationTokenFromHtml(@NonNull final String html) {
+	protected String extractRequestVerificationTokenFromHtml(@Nonnull @NonNull final String html) {
 		String result = null;
 		@SuppressWarnings("SpellCheckingInspection")
 		// <input name="__RequestVerificationToken" type="hidden" value="lFVlMZlt2-YJKAwZWS_K_p3gsQWjZOvBNBZ3lM8io_nFGFL0oRsj4YwQUdqGfyrEqGwEUPmm0FgKH1lPWdk257tuTWQ1" />
@@ -499,7 +550,7 @@ public class AtagOneApp {
 	 * @return Device ID or null when ID not found within HTML
 	 */
 	@Nullable
-	protected String extractDeviceIdFromHtml(@NonNull final String html) {
+	protected String extractDeviceIdFromHtml(@Nonnull @NonNull final String html) {
 		String result = null;
 		// <tr onclick="javascript:changeDeviceAndRedirect('/Home/Index/{0}','6808-1401-3109_15-30-001-544');">
 		final Matcher matcher = PATTERN_DEVICE_ID.matcher(html);
@@ -517,7 +568,7 @@ public class AtagOneApp {
 	 * @throws NumberFormatException when resulting room temperature is un-parse-able.
 	 */
 	@Nullable
-	protected Float extractRoomTemperature(@NonNull final String html) throws NumberFormatException {
+	protected Float extractRoomTemperature(@Nonnull @NonNull final String html) throws NumberFormatException {
 		String result = null;
 		// {\"ch_control_mode\":0,\"temp_influenced\":false,\"room_temp\":18.0,\"ch_mode_temp\":18.2,\"is_heating\":true,\"vacationPlanned\":false,\"temp_increment\":null,\"round_half\":false,\"schedule_base_temp\":null,\"outside_temp\":null}
 		final Matcher matcher = PATTERN_ROOM_TEMPERATURE.matcher(html);

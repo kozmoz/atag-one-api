@@ -1,18 +1,16 @@
 package org.juurlink.atagone.domain;
 
-import java.net.InetAddress;
-
 import javax.annotation.Nonnull;
 
 import lombok.Value;
 
 /**
- * ATAG One info.
+ * Version info and build timestamp.
  */
 @Value
-public class OneInfo {
+public class Version {
 	@Nonnull
-	private InetAddress ip;
+	private String version;
 	@Nonnull
-	private String deviceId;
+	private String timestamp;
 }
