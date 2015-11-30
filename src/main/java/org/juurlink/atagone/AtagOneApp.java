@@ -34,6 +34,7 @@ import org.apache.commons.cli.ParseException;
 import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.FORMAT;
 import org.juurlink.atagone.domain.OneInfo;
+import org.juurlink.atagone.domain.Version;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.utils.HTTPUtils;
 import org.juurlink.atagone.utils.IOUtils;
@@ -232,7 +233,10 @@ public class AtagOneApp {
 
 			// Display version info.
 			if (hasVersion) {
-				displayVersionInfo();
+				final Version versionInfo = getVersionInfo();
+				System.out.println("Version: " + versionInfo.getVersion());
+				System.out.println("Build:  " + getVersionInfo().getTimestamp());
+				System.out.println();
 				System.exit(0);
 			}
 
@@ -302,7 +306,7 @@ public class AtagOneApp {
 	/**
 	 * Display version info and build timestamp.
 	 */
-	private static void displayVersionInfo() {
+	private static Version getVersionInfo() {
 
 		String mavenApplicationVersion = "UNKNOWN";
 		String mavenBuildDate = "UNKNOWN";
@@ -327,9 +331,7 @@ public class AtagOneApp {
 			mavenBuildDate = mavenApplicationVersion = "Read Error";
 		}
 
-		System.out.println("Version: " + mavenApplicationVersion);
-		System.out.println("Build timestamp:  " + mavenBuildDate);
-		System.out.println();
+		return new Version(mavenApplicationVersion, mavenBuildDate);
 	}
 
 	/**
