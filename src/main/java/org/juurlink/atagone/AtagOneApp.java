@@ -11,6 +11,7 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -19,8 +20,6 @@ import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -36,6 +35,7 @@ import org.juurlink.atagone.domain.FORMAT;
 import org.juurlink.atagone.domain.OneInfo;
 import org.juurlink.atagone.domain.Version;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
+import org.juurlink.atagone.utils.HTMLUtils;
 import org.juurlink.atagone.utils.HTTPUtils;
 import org.juurlink.atagone.utils.IOUtils;
 import org.juurlink.atagone.utils.JSONUtils;
@@ -55,16 +55,11 @@ public class AtagOneApp {
 	private static final String URL_LOGIN = "https://portal.atag-one.com/Account/Login";
 	private static final String URL_DEVICE_HOME = "https://portal.atag-one.com/Home/Index/{0}";
 	private static final String URL_DIAGNOSTICS = "https://portal.atag-one.com/Device/LatestReport";
+	private static final String URL_UPDATE_DEVICE_CONTROL = "https://portal.atag-one.com/Home/UpdateDeviceControl/?deviceId={0}";
 	private static final String URL_DEVICE_SET_SETPOINT = "https://portal.atag-one.com/Home/DeviceSetSetpoint";
 
-	private static final String EXECUTABLE_NAME = "atag-one.sh";
+	private static final String EXECUTABLE_NAME = "atag-one";
 	private static final String ENCODING_UTF_8 = "UTF-8";
-
-	private static final Pattern PATTERN_REQUEST_VERIFICATION_TOKEN = Pattern
-		.compile("name=\"__RequestVerificationToken\"[^>]+ value=\"(.*?)\"", Pattern.DOTALL);
-	private static final Pattern PATTERN_DEVICE_ID = Pattern
-		.compile("[0-9]{4}-[0-9]{4}-[0-9]{4}_[0-9]{2}-[0-9]{2}-[0-9]{3}-[0-9]{3}", Pattern.DOTALL);
-	private static final Pattern PATTERN_ROOM_TEMPERATURE = Pattern.compile("room_temp.*?:([0-9\\.]{1,4})", Pattern.DOTALL);
 
 	// Command line options.
 	private static final String OPTION_EMAIL = "email";
@@ -91,6 +86,13 @@ public class AtagOneApp {
 	private static final String VALUE_CH_WATER_TEMPERATURE = "chWaterTemperature";
 	private static final String VALUE_CH_WATER_PRESSURE = "chWaterPressure";
 	private static final String VALUE_CH_RETURN_TEMPERATURE = "chReturnTemperature";
+	private static final String VALUE_TARGET_TEMPERATURE = "targetTemperature";
+	private static final String VALUE_CURRENT_MODE = "currentMode";
+	private static final String VALUE_VACATION_PLANNED = "vacationPlanned";
+
+	// Variable names in JSON responses.
+	private static final String JSON_ROOM_TEMP = "room_temp";
+
 	private static final int TEMPERATURE_MAX = 30;
 	private static final int TEMPERATURE_MIN = 4;
 
@@ -120,6 +122,8 @@ public class AtagOneApp {
 	 * Application start point.
 	 */
 	public static void main(String[] args) throws Exception {
+
+		// Determine what to do.
 		Configuration configuration = parseCommandLine(args);
 
 		// Show debugging info?
@@ -140,7 +144,7 @@ public class AtagOneApp {
 
 			if (temperature != null) {
 				// Set temperature
-				float currentRoomTemperature = atagOneApp.setDeviceSetPoint(temperature);
+				BigDecimal currentRoomTemperature = atagOneApp.setDeviceSetPoint(temperature);
 				System.out.println(String.format(Locale.US, "%.1f", currentRoomTemperature));
 
 			} else {
@@ -209,13 +213,14 @@ public class AtagOneApp {
 	protected static Configuration parseCommandLine(final String[] args) {
 
 		Options options = new Options();
-		options.addOption("e", OPTION_EMAIL, true, "User Portal email address");
-		options.addOption("p", OPTION_PASSWORD, true, "User Portal password");
-		options.addOption("h", OPTION_HELP, false, "Print this help message");
-		options.addOption("d", OPTION_DEBUG, false, "Print debugging information");
-		options.addOption("o", OPTION_OUTPUT, true, "Output format; json or csv");
-		options.addOption("s", OPTION_SET, true, "Set temperature in degrees celsius between " + TEMPERATURE_MIN + " and " + TEMPERATURE_MAX);
-		options.addOption("v", OPTION_VERSION, false, "Version info and build timestamp");
+		options.addOption("e", OPTION_EMAIL, true, "User Portal email address.");
+		options.addOption("p", OPTION_PASSWORD, true, "User Portal password.");
+		options.addOption("h", OPTION_HELP, false, "Print this help message.");
+		options.addOption("d", OPTION_DEBUG, false, "Print debugging information.");
+		options.addOption("o", OPTION_OUTPUT, true, "Output format; json [default] or csv.");
+		options.addOption("s", OPTION_SET, true,
+			"Set temperature in degrees celsius between " + TEMPERATURE_MIN + " and " + TEMPERATURE_MAX + " inclusive.");
+		options.addOption("v", OPTION_VERSION, false, "Version info and build timestamp.");
 
 		try {
 			CommandLineParser parser = new DefaultParser();
@@ -312,7 +317,7 @@ public class AtagOneApp {
 		String mavenBuildDate = "UNKNOWN";
 
 		try {
-			Class clazz = AtagOneApp.class;
+			Class<AtagOneApp> clazz = AtagOneApp.class;
 			String className = clazz.getSimpleName() + ".class";
 			String classPath = clazz.getResource(className).toString();
 			if (classPath.startsWith("jar")) {
@@ -340,7 +345,10 @@ public class AtagOneApp {
 	protected static void showCommandLineHelp(final Options options) {
 		// Automatically generate the help statement.
 		HelpFormatter formatter = new HelpFormatter();
-		formatter.printHelp(EXECUTABLE_NAME, options);
+		final String headerMessage = "Prints by default diagnostic info about the ATAG One thermostat.\n\n" +
+			"Optionally it can set the setpoint temperature. \n\n";
+		formatter.printHelp(EXECUTABLE_NAME,
+			headerMessage, options, "", true);
 	}
 
 	/**
@@ -379,7 +387,7 @@ public class AtagOneApp {
 		params.put("RememberMe", "false");
 
 		String html = HTTPUtils.getPostPageContent(URL_LOGIN, params);
-		selectedDeviceId = extractDeviceIdFromHtml(html);
+		selectedDeviceId = HTMLUtils.extractDeviceIdFromHtml(html);
 
 		if (StringUtils.isBlank(selectedDeviceId)) {
 			throw new IllegalStateException("No Device ID found, cannot continue.");
@@ -399,32 +407,44 @@ public class AtagOneApp {
 			throw new IllegalArgumentException("No Device selected, cannot get diagnostics.");
 		}
 
-		final String urlString = URL_DIAGNOSTICS + "?deviceId=" + URLEncoder.encode(selectedDeviceId, ENCODING_UTF_8);
-		log.fine("GET diagnostics: " + urlString);
+		final String diagnosticsUrl = URL_DIAGNOSTICS + "?deviceId=" + URLEncoder.encode(selectedDeviceId, ENCODING_UTF_8);
+		log.fine("GET diagnostics: URL=" + diagnosticsUrl);
 
 		// HTTP(S) Connect.
-		final String html = HTTPUtils.getPageContent(urlString);
+		String html = HTTPUtils.getPageContent(diagnosticsUrl);
+		log.fine("GET diagnostics: Response HTML\n" + html);
 
 		// Scrape values from HTML page.
 		Map<String, Object> values = new LinkedHashMap<String, Object>();
 		values.put(VALUE_DEVICE_ID, selectedDeviceId);
-		values.put(VALUE_DEVICE_ALIAS, getDiagnosticValueByLabel(html, String.class, "Apparaat alias", "Device alias"));
-		values.put(VALUE_LATEST_REPORT_TIME, getDiagnosticValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time"));
-		values.put(VALUE_CONNECTED_TO, getDiagnosticValueByLabel(html, String.class, "Verbonden met", "Connected to"));
-		values.put(VALUE_BURNING_HOURS, getDiagnosticValueByLabel(html, BigDecimal.class, "Branduren", "Burning hours"));
-		values.put(VALUE_BOILER_HEATING_FOR, getDiagnosticValueByLabel(html, String.class, "Ketel in bedrijf voor", "Boiler heating for"));
-		values.put(VALUE_FLAME_STATUS, getDiagnosticValueByLabel(html, Boolean.class, "Brander status", "Flame status"));
-		values.put(VALUE_ROOM_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Kamertemperatuur", "Room temperature"));
-		values.put(VALUE_OUTSIDE_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature"));
-		values.put(VALUE_DHW_SETPOINT, getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint warmwater", "DHW setpoint"));
-		values
-			.put(VALUE_DHW_WATER_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "Warmwatertemperatuur", "DHW water temperature"));
-		values.put(VALUE_CH_SETPOINT, getDiagnosticValueByLabel(html, BigDecimal.class, "Setpoint cv", "CH setpoint"));
-		values
-			.put(VALUE_CH_WATER_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV-aanvoertemperatuur", "CH water temperature"));
-		values.put(VALUE_CH_WATER_PRESSURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV-waterdruk", "CH water pressure"));
-		values
-			.put(VALUE_CH_RETURN_TEMPERATURE, getDiagnosticValueByLabel(html, BigDecimal.class, "CV retourtemperatuur", "CH return temperature"));
+		values.put(VALUE_DEVICE_ALIAS, HTMLUtils.getValueByLabel(html, String.class, "Apparaat alias", "Device alias"));
+		values.put(VALUE_LATEST_REPORT_TIME, HTMLUtils.getValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time"));
+		values.put(VALUE_CONNECTED_TO, HTMLUtils.getValueByLabel(html, String.class, "Verbonden met", "Connected to"));
+		values.put(VALUE_BURNING_HOURS, HTMLUtils.getValueByLabel(html, BigDecimal.class, "Branduren", "Burning hours"));
+		values.put(VALUE_BOILER_HEATING_FOR, HTMLUtils.getValueByLabel(html, String.class, "Ketel in bedrijf voor", "Boiler heating for"));
+		values.put(VALUE_FLAME_STATUS, HTMLUtils.getValueByLabel(html, Boolean.class, "Brander status", "Flame status"));
+		values.put(VALUE_ROOM_TEMPERATURE, HTMLUtils.getValueByLabel(html, BigDecimal.class, "Kamertemperatuur", "Room temperature"));
+		values.put(VALUE_OUTSIDE_TEMPERATURE, HTMLUtils.getValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature"));
+		values.put(VALUE_DHW_SETPOINT, HTMLUtils.getValueByLabel(html, BigDecimal.class, "Setpoint warmwater", "DHW setpoint"));
+		values.put(VALUE_DHW_WATER_TEMPERATURE, HTMLUtils.getValueByLabel(html, BigDecimal.class, "Warmwatertemperatuur", "DHW water temperature"));
+		values.put(VALUE_CH_SETPOINT, HTMLUtils.getValueByLabel(html, BigDecimal.class, "Setpoint cv", "CH setpoint"));
+		values.put(VALUE_CH_WATER_TEMPERATURE, HTMLUtils.getValueByLabel(html, BigDecimal.class, "CV-aanvoertemperatuur", "CH water temperature"));
+		values.put(VALUE_CH_WATER_PRESSURE, HTMLUtils.getValueByLabel(html, BigDecimal.class, "CV-waterdruk", "CH water pressure"));
+		values.put(VALUE_CH_RETURN_TEMPERATURE, HTMLUtils.getValueByLabel(html, BigDecimal.class, "CV retourtemperatuur", "CH return temperature"));
+
+		// We have to do an extra call to get the target temperature.
+		// {"isHeating":false,"targetTemp":"17.0","currentTemp":"16.9","vacationPlanned":false,"currentMode":"manual"}
+		String deviceControlUrl = URL_UPDATE_DEVICE_CONTROL.replace("{0}", URLEncoder.encode(selectedDeviceId, ENCODING_UTF_8));
+		log.fine("GET deviceControl: URL=" + deviceControlUrl);
+
+		// HTTP(S) Connect.
+		html = HTTPUtils.getPageContent(deviceControlUrl);
+		log.fine("GET deviceControl: Response HTML\n" + html);
+
+		values.put(VALUE_TARGET_TEMPERATURE, JSONUtils.getJSONValueByName(html, BigDecimal.class, "targetTemp"));
+		values.put(VALUE_CURRENT_MODE, JSONUtils.getJSONValueByName(html, String.class, "currentMode"));
+		values.put(VALUE_VACATION_PLANNED, JSONUtils.getJSONValueByName(html, String.class, "vacationPlanned"));
+
 		return values;
 	}
 
@@ -432,9 +452,9 @@ public class AtagOneApp {
 	 * Set device temperature.
 	 *
 	 * @param pTemperature Device SetPoint temperature
-	 * @return current room temperature
+	 * @return current room temperature or null when temperature not found in response
 	 */
-	protected float setDeviceSetPoint(float pTemperature) throws IOException, IllegalArgumentException, AtagPageErrorException {
+	protected BigDecimal setDeviceSetPoint(float pTemperature) throws IOException, IllegalArgumentException, AtagPageErrorException {
 
 		// Test parameters.
 		float roundedTemperature = NumberUtils.roundHalf(pTemperature);
@@ -454,12 +474,13 @@ public class AtagOneApp {
 		final String newUrl = URL_DEVICE_SET_SETPOINT + "/" + selectedDeviceId + "?temperature=" + roundedTemperature;
 		log.fine("POST setDeviceSetPoint: " + newUrl);
 
-		Map<String, String> params = new LinkedHashMap<String, String>();
+		Map<String, String> params = new HashMap<String, String>();
 		params.put("__RequestVerificationToken", requestVerificationToken);
 
+		// Response contains current temperature.
+		// {\"ch_control_mode\":0,\"temp_influenced\":false,\"room_temp\":18.0,\"ch_mode_temp\":18.2,\"is_heating\":true,\"vacationPlanned\":false,\"temp_increment\":null,\"round_half\":false,\"schedule_base_temp\":null,\"outside_temp\":null}
 		final String html = HTTPUtils.getPostPageContent(newUrl, params);
-
-		Float roomTemperature = extractRoomTemperature(html);
+		BigDecimal roomTemperature = JSONUtils.getJSONValueByName(html, BigDecimal.class, JSON_ROOM_TEMP);
 		if (roomTemperature != null) {
 			return roomTemperature;
 		}
@@ -470,6 +491,7 @@ public class AtagOneApp {
 	/**
 	 * Open device home page and return requests verification token.          ;
 	 *
+	 * @param url URL to connect to
 	 * @return request verification token
 	 * @throws IOException           When error connecting to ATAG ONE portal
 	 * @throws IllegalStateException When session cannot be started
@@ -485,7 +507,7 @@ public class AtagOneApp {
 		String html = HTTPUtils.getPageContent(newUrl);
 
 		// Get request verification.
-		String requestVerificationToken = extractRequestVerificationTokenFromHtml(html);
+		String requestVerificationToken = HTMLUtils.extractRequestVerificationTokenFromHtml(html);
 		if (!StringUtils.isBlank(requestVerificationToken)) {
 			return requestVerificationToken;
 		}
@@ -493,6 +515,12 @@ public class AtagOneApp {
 		throw new IllegalStateException("No Request Verification Token received.");
 	}
 
+	/**
+	 * Search for thermostat in local network.
+	 *
+	 * @return Info about the thermostat found, or null when noting found
+	 */
+	@Nullable
 	protected OneInfo searchOnes() throws IOException {
 
 		final int PORT = 11000;
@@ -527,100 +555,4 @@ public class AtagOneApp {
 		}
 	}
 
-	/**
-	 * Extract RequestVerificationToken from HTML.
-	 *
-	 * @param html HTML
-	 * @return RequestVerificationToken or null when not found in HTML
-	 */
-	@Nullable
-	protected String extractRequestVerificationTokenFromHtml(@Nonnull @NonNull final String html) {
-		String result = null;
-		@SuppressWarnings("SpellCheckingInspection")
-		// <input name="__RequestVerificationToken" type="hidden" value="lFVlMZlt2-YJKAwZWS_K_p3gsQWjZOvBNBZ3lM8io_nFGFL0oRsj4YwQUdqGfyrEqGwEUPmm0FgKH1lPWdk257tuTWQ1" />
-		final Matcher matcher = PATTERN_REQUEST_VERIFICATION_TOKEN.matcher(html);
-		if (matcher.find()) {
-			result = matcher.group(1);
-		}
-		return result;
-	}
-
-	/**
-	 * Extract Device ID from HTML.
-	 *
-	 * @param html HTML
-	 * @return Device ID or null when ID not found within HTML
-	 */
-	@Nullable
-	protected String extractDeviceIdFromHtml(@Nonnull @NonNull final String html) {
-		String result = null;
-		// <tr onclick="javascript:changeDeviceAndRedirect('/Home/Index/{0}','6808-1401-3109_15-30-001-544');">
-		final Matcher matcher = PATTERN_DEVICE_ID.matcher(html);
-		if (matcher.find()) {
-			result = matcher.group(0);
-		}
-		return result;
-	}
-
-	/**
-	 * Extract room temperature from HTML.
-	 *
-	 * @param html HTML
-	 * @return Room temperature or null when not found within HTML
-	 * @throws NumberFormatException when resulting room temperature is un-parse-able.
-	 */
-	@Nullable
-	protected Float extractRoomTemperature(@Nonnull @NonNull final String html) throws NumberFormatException {
-		String result = null;
-		// {\"ch_control_mode\":0,\"temp_influenced\":false,\"room_temp\":18.0,\"ch_mode_temp\":18.2,\"is_heating\":true,\"vacationPlanned\":false,\"temp_increment\":null,\"round_half\":false,\"schedule_base_temp\":null,\"outside_temp\":null}
-		final Matcher matcher = PATTERN_ROOM_TEMPERATURE.matcher(html);
-		if (matcher.find()) {
-			result = matcher.group(1);
-		}
-		if (result != null) {
-			return Float.parseFloat(result);
-		} else {
-			return null;
-		}
-	}
-
-	/**
-	 * Get Device ID from HTML.
-	 *
-	 * @param html   Full html of page
-	 * @param clazz  Class type of value; [String, BigInteger, Boolean]
-	 * @param labels Labels to search for, one or more
-	 * @return Value or null when not found
-	 * @throws IllegalStateException When requested value class not supported
-	 */
-	protected Object getDiagnosticValueByLabel(final String html, final Class clazz, final String... labels) {
-
-		// HTML structure of values in page.
-		//     <label class="col-xs-6 control-label">Apparaat alias</label>
-		//     <div class="col-xs-6">
-		//         <p class="form-control-static">CV-ketel</p>
-		//     </div>
-		for (final String label : labels) {
-			final Pattern pattern = Pattern.compile(">" + label + "</label>.*?<p[^>]*>(.*?)<", Pattern.DOTALL + Pattern.CASE_INSENSITIVE);
-			final Matcher matcher = pattern.matcher(html);
-			if (matcher.find()) {
-				final String value = matcher.group(1);
-				if (!value.isEmpty()) {
-					// Replace Dutch decimal separator.
-					final String valueString = value.replace(",", ".").trim();
-					if (clazz == String.class) {
-						return valueString;
-					}
-					if (clazz == Boolean.class) {
-						return "aan".equalsIgnoreCase(valueString) || "on".equalsIgnoreCase(valueString);
-					}
-					if (clazz == BigDecimal.class) {
-						return new BigDecimal(valueString);
-					}
-					throw new IllegalStateException("Unknown return type requested: '" + clazz + "'");
-				}
-			}
-		}
-		return null;
-	}
 }
