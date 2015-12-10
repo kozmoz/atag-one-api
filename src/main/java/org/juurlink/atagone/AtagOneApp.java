@@ -163,6 +163,8 @@ public class AtagOneApp {
 					System.out.print(" ");
 					System.out.print(diagnoses.get(VALUE_CH_RETURN_TEMPERATURE));
 					System.out.print(" ");
+					System.out.print(diagnoses.get(VALUE_TARGET_TEMPERATURE));
+					System.out.print(" ");
 				} else {
 					// Print diagnostics as JSON and keep the sequence.
 					System.out.println(JSONUtils.toJSON(diagnoses));
