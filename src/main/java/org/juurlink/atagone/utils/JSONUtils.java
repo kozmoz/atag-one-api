@@ -1,7 +1,5 @@
 package org.juurlink.atagone.utils;
 
-import com.sun.istack.internal.NotNull;
-
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,8 +60,8 @@ public class JSONUtils {
 	 * @throws IllegalStateException When requested value class not supported
 	 */
 	@Nullable
-	public static <T> T getJSONValueByName(@Nonnull @NotNull final String json, @Nonnull @NotNull final Class<T> clazz,
-		@Nonnull @NotNull final String name) {
+	public static <T> T getJSONValueByName(@Nonnull @NonNull final String json, @Nonnull @NonNull final Class<T> clazz,
+		@Nonnull @NonNull final String name) {
 
 		// Real world JSON example.
 		// {"isHeating":false,"targetTemp":"17.0","currentTemp":"16.9","vacationPlanned":false,"currentMode":"manual"}

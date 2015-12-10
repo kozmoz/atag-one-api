@@ -1,7 +1,5 @@
 package org.juurlink.atagone.utils;
 
-import com.sun.istack.internal.NotNull;
-
 import java.math.BigDecimal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,7 +31,7 @@ public class HTMLUtils {
 	 * @throws IllegalStateException When requested value class not supported
 	 */
 	@Nullable
-	public static <T> T getValueByLabel(@Nonnull @NotNull final String html, @Nonnull @NotNull final Class<T> clazz, final String... labels) {
+	public static <T> T getValueByLabel(@Nonnull @NonNull final String html, @Nonnull @NonNull final Class<T> clazz, final String... labels) {
 
 		// HTML structure of values in page.
 		//     <label class="col-xs-6 control-label">Apparaat alias</label>
