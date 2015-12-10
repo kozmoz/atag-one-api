@@ -165,6 +165,12 @@ public class AtagOneApp {
 					System.out.print(" ");
 					System.out.print(diagnoses.get(VALUE_TARGET_TEMPERATURE));
 					System.out.print(" ");
+					System.out.print(diagnoses.get(VALUE_CH_SETPOINT));
+					System.out.print(" ");
+					System.out.print((Boolean) diagnoses.get(VALUE_FLAME_STATUS) ? "1" : "0");
+					System.out.print(" ");
+					System.out.print(diagnoses.get(VALUE_BOILER_HEATING_FOR));
+					System.out.print(" ");
 				} else {
 					// Print diagnostics as JSON and keep the sequence.
 					System.out.println(JSONUtils.toJSON(diagnoses));
