@@ -37,11 +37,20 @@ public class JSONUtilsTest {
 
 	@Test
 	public void testGetJSONValueByName() throws Exception {
-		String json = "{\"isHeating\":false,\"targetTemp\":\"17.0\",\"currentTemp\":\"16.9\",\"vacationPlanned\":false,\"currentMode\":\"manual\"}";
+		String json = "{\"isHeating\":false,\"targetTemp\":17.0,\"currentTemp\":16.9,\"vacationPlanned\":false,\"currentMode\":\"manual\", \"errors\":\"\", \"errors2\" : \"whatever\" , \"errors3\" : \"whatever 2 \" }";
 		assertEquals(Boolean.FALSE, JSONUtils.getJSONValueByName(json, Boolean.class, "isHeating"));
 		assertEquals(new BigDecimal("17.0"), JSONUtils.getJSONValueByName(json, BigDecimal.class, "targetTemp"));
 		assertEquals(new BigDecimal("16.9"), JSONUtils.getJSONValueByName(json, BigDecimal.class, "currentTemp"));
 		assertEquals("manual", JSONUtils.getJSONValueByName(json, String.class, "currentMode"));
+		assertEquals("whatever", JSONUtils.getJSONValueByName(json, String.class, "errors2"));
+		assertEquals("whatever 2 ", JSONUtils.getJSONValueByName(json, String.class, "errors3"));
+		assertEquals("", JSONUtils.getJSONValueByName(json, String.class, "errors"));
+		assertEquals(null, JSONUtils.getJSONValueByName(json, String.class, "targetTemp"));
+
+		// Try to get string as BigDecimal/Integer/Boolean
+		assertEquals(null, JSONUtils.getJSONValueByName(json, BigDecimal.class, "currentMode"));
+		assertEquals(null, JSONUtils.getJSONValueByName(json, Integer.class, "currentMode"));
+		assertEquals(false, JSONUtils.getJSONValueByName(json, Boolean.class, "currentMode"));
 
 		// Well, this is the exact format returned, sort of escaped JSON.
 		String html = "\"{\\\"ch_control_mode\\\":0,\\\"temp_influenced\\\":false,\\\"room_temp\\\":18.0,\\\"ch_mode_temp\\\":18.0,\\\"is_heating\\\":false,\\\"vacationPlanned\\\":false,\\\"temp_increment\\\":null,\\\"round_half\\\":false,\\\"schedule_base_temp\\\":null,\\\"outside_temp\\\":null}\"";

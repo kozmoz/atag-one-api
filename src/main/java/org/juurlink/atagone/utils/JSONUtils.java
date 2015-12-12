@@ -12,11 +12,13 @@ import javax.annotation.Nullable;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import lombok.extern.java.Log;
 
 /**
  * JSON utils.
  */
 @UtilityClass
+@Log
 public class JSONUtils {
 
 	/**
@@ -69,21 +71,51 @@ public class JSONUtils {
 
 		// We need to double escape the backslash in RegEx.
 		// http://stackoverflow.com/questions/11769555/java-regular-expression-to-match-a-backslash-followed-by-a-quote
-		final Pattern pattern = Pattern
-			.compile("(?:\"|\\\\\"|)" + escapedName + "(?:\"|\\\\\"|)\\s*:\\s*(?:\"|\\\\\"|)(.+?)(?:\"|\\\\\"|)[,}]", Pattern.DOTALL);
+		Pattern pattern;
+		if (clazz == String.class) {
+			// String value has quotes arount the value.
+			pattern = Pattern
+				.compile("(?:\"|\\\\\"|)" + escapedName + "(?:\"|\\\\\"|)\\s*:\\s*((?:\"|\\\\\").*?(?:\"|\\\\\"))[,}\\s]", Pattern.DOTALL);
+		} else {
+			pattern = Pattern.compile("(?:\"|\\\\\"|)" + escapedName + "(?:\"|\\\\\"|)\\s*:\\s*(.+?)[,}\\s]", Pattern.DOTALL);
+		}
 		final Matcher matcher = pattern.matcher(json);
 		if (matcher.find()) {
 			final String value = matcher.group(1);
 			if (!value.isEmpty()) {
 				// Replace Dutch decimal separator.
 				if (clazz == String.class) {
-					return clazz.cast(value);
+					if (value.length() >= 2) {
+						// Strip comments from string.
+						return clazz.cast(value.substring(1, value.length() - 1));
+					} else {
+						return null;
+					}
 				}
 				if (clazz == Boolean.class) {
 					return clazz.cast(Boolean.valueOf(value));
 				}
+				if (clazz == Integer.class) {
+					Integer anInt;
+					try {
+						anInt = Integer.parseInt(value, 10);
+					} catch (NumberFormatException e) {
+						// Parse error.
+						log.fine("Error parsing value '" + value + "' as Integer.");
+						anInt = null;
+					}
+					return clazz.cast(anInt);
+				}
 				if (clazz == BigDecimal.class) {
-					return clazz.cast(new BigDecimal(value));
+					BigDecimal bigDecimal;
+					try {
+						bigDecimal = new BigDecimal(value);
+					} catch (Exception e) {
+						// Parse error.
+						log.fine("Error parsing value '" + value + "' as BigDecimal.");
+						bigDecimal = null;
+					}
+					return clazz.cast(bigDecimal);
 				}
 				throw new IllegalStateException("Unknown return type requested: '" + clazz + "'");
 			}

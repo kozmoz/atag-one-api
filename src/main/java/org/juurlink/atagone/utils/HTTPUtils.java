@@ -12,6 +12,7 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -81,8 +82,10 @@ public class HTTPUtils {
 	}
 
 	/**
-	 * Get POST page content.
+	 * Get POST page content; form url encoded.
 	 *
+	 * @param url URL to connect to
+	 * @param parameters POST parameters
 	 * @return Full page content html
 	 * @throws IOException            in case of connection error
 	 * @throws AtagPageErrorException in case the page contains an error message
@@ -96,6 +99,38 @@ public class HTTPUtils {
 		httpConnection.setDoOutput(true);
 		httpConnection.setRequestMethod(REQUEST_METHOD_POST);
 		httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded; " + ENCODING_UTF_8);
+		httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_LENGTH, "" + postData.length);
+
+		OutputStream outputStream = null;
+		try {
+			outputStream = httpConnection.getOutputStream();
+			outputStream.write(postData);
+		} finally {
+			IOUtils.closeQuietly(outputStream);
+		}
+
+		return toPageResponse(httpConnection);
+	}
+
+	/**
+	 * Get POST page content.
+	 *
+	 * @param url URL to connect to
+	 * @param json JSON payload
+	 * @return Full page content html or json
+	 * @throws IOException            in case of connection error
+	 * @throws AtagPageErrorException in case the page contains an error message
+	 */
+	@Nonnull
+	public static String getPostPageContent(@NonNull String url, @NonNull String json) throws IOException, AtagPageErrorException {
+
+		byte[] postData = json.getBytes(Charset.forName("UTF-8"));
+
+		// HTTP(S) Connect.
+		HttpURLConnection httpConnection = createHttpConnection(url);
+		httpConnection.setDoOutput(true);
+		httpConnection.setRequestMethod(REQUEST_METHOD_POST);
+		httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_TYPE, "application/json; " + ENCODING_UTF_8);
 		httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_LENGTH, "" + postData.length);
 
 		OutputStream outputStream = null;
@@ -253,10 +288,12 @@ public class HTTPUtils {
 	}
 
 	/**
-	 * Get page contents from given httpUrlConnection.
+	 * Get page contents from given httpUrlConnection en close the streams.
 	 *
-	 * @return pageContent
+	 * @param httpConnection Opened connection
+	 * @return pageContent as String
 	 */
+	@Nonnull
 	protected static String toPageResponse(@NonNull final HttpURLConnection httpConnection) throws AtagPageErrorException, IOException {
 		InputStream inputStreamStd = null;
 		InputStream inputStreamErr = null;
@@ -265,6 +302,7 @@ public class HTTPUtils {
 			final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
 
 			// Does the page contain an error message?
+			// Todo: only in case of HTML response.
 			String errorMessage = extractPageErrorFromHtml(html);
 			if (!StringUtils.isBlank(errorMessage)) {
 				throw new AtagPageErrorException(errorMessage);

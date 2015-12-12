@@ -12,7 +12,7 @@ import lombok.Value;
 @Value
 public class OneInfo {
 	@Nonnull
-	private InetAddress ip;
+	private InetAddress deviceAddress;
 	@Nonnull
 	private String deviceId;
 }

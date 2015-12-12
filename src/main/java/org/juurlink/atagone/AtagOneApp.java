@@ -11,6 +11,7 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -31,10 +32,14 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.juurlink.atagone.domain.Configuration;
+import org.juurlink.atagone.domain.DeviceInfo;
 import org.juurlink.atagone.domain.FORMAT;
 import org.juurlink.atagone.domain.OneInfo;
 import org.juurlink.atagone.domain.Version;
+import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
+import org.juurlink.atagone.exceptions.AtagSearchErrorException;
+import org.juurlink.atagone.utils.CalendarUtils;
 import org.juurlink.atagone.utils.HTMLUtils;
 import org.juurlink.atagone.utils.HTTPUtils;
 import org.juurlink.atagone.utils.IOUtils;
@@ -43,7 +48,6 @@ import org.juurlink.atagone.utils.NumberUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
 import lombok.NonNull;
-import lombok.Setter;
 import lombok.extern.java.Log;
 
 /**
@@ -58,6 +62,7 @@ public class AtagOneApp {
 	private static final String URL_UPDATE_DEVICE_CONTROL = "https://portal.atag-one.com/Home/UpdateDeviceControl/?deviceId={0}";
 	private static final String URL_DEVICE_SET_SETPOINT = "https://portal.atag-one.com/Home/DeviceSetSetpoint";
 
+	private static final String THERMOSTAT_NAME = "ATAG One";
 	private static final String EXECUTABLE_NAME = "atag-one";
 	private static final String ENCODING_UTF_8 = "UTF-8";
 
@@ -100,20 +105,37 @@ public class AtagOneApp {
 	private static final String PROPERTY_NAME_MAVEN_BUILD_DATE = "buildDate";
 	private static final String META_INF_MANIFEST_MF = "/META-INF/MANIFEST.MF";
 
-	@Setter
-	private String username;
-	@Setter
-	private String password;
+	private static final int MAX_THERMOSTAT_AUTH_RETRIES = 10;
+
+	private static final int MESSAGE_INFO_CONTROL = 1;
+	private static final int MESSAGE_INFO_SCHEDULES = 2;
+	private static final int MESSAGE_INFO_CONFIGURATION = 4;
+	private static final int MESSAGE_INFO_REPORT = 8;
+	private static final int MESSAGE_INFO_STATUS = 16;
+	private static final int MESSAGE_INFO_WIFISCAN = 32;
+
+	@NonNull
+	private Configuration configuration;
 
 	/**
-	 * ATAG ONE device ID.
+	 * ATAG One device ID.
 	 */
+	@NonNull
 	private String selectedDeviceId;
+
+	/**
+	 * ATAG One IP address.
+	 */
+	@Nullable
+	private InetAddress selectedDeviceAddress;
+
+	private boolean selectedDeviceIsLocal;
 
 	/**
 	 * Create new instance.
 	 */
-	public AtagOneApp() {
+	public AtagOneApp(Configuration configuration) {
+		this.configuration = configuration;
 		// Configure default in-memory cookie store.
 		CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
 	}
@@ -124,7 +146,7 @@ public class AtagOneApp {
 	public static void main(String[] args) throws Exception {
 
 		// Determine what to do.
-		Configuration configuration = parseCommandLine(args);
+		Configuration configuration = validateAndParseCommandLine(args);
 
 		// Show debugging info?
 		if (configuration.isDebug()) {
@@ -132,12 +154,14 @@ public class AtagOneApp {
 		}
 
 		// Initialize ATAG ONE Portal connector.
-		AtagOneApp atagOneApp = new AtagOneApp();
-		atagOneApp.setUsername(configuration.getEmail());
-		atagOneApp.setPassword(configuration.getPassword());
+		AtagOneApp atagOneApp = new AtagOneApp(configuration);
 
 		try {
+			//			if (atagOneApp.selectedDeviceIsLocal) {
 			atagOneApp.login();
+			//			} else {
+			//				atagOneApp.loginAtPortal();
+			//			}
 
 			@Nullable
 			final Float temperature = configuration.getTemperature();
@@ -149,9 +173,16 @@ public class AtagOneApp {
 
 			} else {
 				// Get diagnostics.
-				final Map<String, Object> diagnoses = atagOneApp.getDiagnostics();
+				Map<String, Object> diagnoses;
+
+				if (atagOneApp.selectedDeviceIsLocal) {
+					diagnoses = atagOneApp.getLocalDiagnostics();
+				} else {
+					diagnoses = atagOneApp.getDiagnostics();
+				}
 
 				if (configuration.getFormat() == FORMAT.CSV) {
+					// Todo: Defer to new method, with sequence of values given.
 					// Print a list of CSV values.
 					System.out.print(diagnoses.get(VALUE_ROOM_TEMPERATURE));
 					System.out.print(" ");
@@ -199,6 +230,20 @@ public class AtagOneApp {
 
 			System.exit(1);
 
+		} catch (AtagPageErrorException e) {
+			// Print human readable error message.
+			System.err.println(e.getMessage());
+			System.err.println();
+
+			System.exit(1);
+
+		} catch (AtagSearchErrorException e) {
+			// Print human readable error message.
+			System.err.println(e.getMessage());
+			System.err.println();
+
+			System.exit(1);
+
 		} catch (Throwable e) {
 			// Other technical errors..
 			final String message = e.getMessage();
@@ -218,10 +263,11 @@ public class AtagOneApp {
 	 * @param args Command line arguments
 	 * @return Configuration object with username, password and other settings
 	 */
-	protected static Configuration parseCommandLine(final String[] args) {
+	protected static Configuration validateAndParseCommandLine(final String[] args) {
 
 		Options options = new Options();
-		options.addOption("e", OPTION_EMAIL, true, "User Portal email address.");
+		options.addOption("e", OPTION_EMAIL, true,
+			"User Portal email address. Setting the email address assumes getting the thermostat data from the " + THERMOSTAT_NAME + " portal.");
 		options.addOption("p", OPTION_PASSWORD, true, "User Portal password.");
 		options.addOption("h", OPTION_HELP, false, "Print this help message.");
 		options.addOption("d", OPTION_DEBUG, false, "Print debugging information.");
@@ -253,8 +299,8 @@ public class AtagOneApp {
 				System.exit(0);
 			}
 
-			if (StringUtils.isBlank(email) || StringUtils.isBlank(password)) {
-				System.err.println("Username and password are both required");
+			if (!StringUtils.isBlank(email) && StringUtils.isBlank(password)) {
+				System.err.println("When the email address is specified, the password is required");
 				System.err.println();
 
 				showCommandLineHelp(options);
@@ -301,7 +347,7 @@ public class AtagOneApp {
 				}
 			}
 
-			return new Configuration(temperature, email, password, debug, outputFormat);
+			return new Configuration(temperature, email, password, debug, outputFormat, null);
 
 		} catch (ParseException e) {
 
@@ -353,8 +399,9 @@ public class AtagOneApp {
 	protected static void showCommandLineHelp(final Options options) {
 		// Automatically generate the help statement.
 		HelpFormatter formatter = new HelpFormatter();
-		final String headerMessage = "Prints by default diagnostic info about the ATAG One thermostat.\n\n" +
-			"Optionally it can set the setpoint temperature. \n\n";
+		final String headerMessage = "Prints by default diagnostic info about the " + THERMOSTAT_NAME + " thermostat in the local network.\n\n" +
+			"Optionally it can set the setpoint temperature. " +
+			"It can connect to both the " + THERMOSTAT_NAME + " portal or directly to the thermostat in the local network.\n\n";
 		formatter.printHelp(EXECUTABLE_NAME,
 			headerMessage, options, "", true);
 	}
@@ -379,9 +426,37 @@ public class AtagOneApp {
 	}
 
 	/**
-	 * Login ATAG ONE portal and select first Device found.
+	 * Login ATAG ONE portal and select first Device found or find the thermostat in the local network.
 	 */
-	protected void login() throws IOException, AtagPageErrorException {
+	protected void login() throws IOException, AtagPageErrorException, AtagSearchErrorException {
+		if (configuration.getEmail() != null && configuration.getDeviceAddress() != null) {
+			log.fine("Email address set, login ar " + THERMOSTAT_NAME + " portal.");
+			loginAtPortal();
+		} else {
+			if (configuration.getDeviceAddress() == null) {
+				log.fine("No email address set, Try to find the " + THERMOSTAT_NAME + " in the local network.");
+				OneInfo oneInfo = searchOnes();
+				if (oneInfo == null) {
+					throw new AtagSearchErrorException("Cannot find " + THERMOSTAT_NAME + " thermostat in local network.");
+				}
+
+				// Device found in local network.
+				selectedDeviceIsLocal = true;
+				selectedDeviceAddress = oneInfo.getDeviceAddress();
+				selectedDeviceId = oneInfo.getDeviceId();
+
+			} else {
+
+				log.fine("Device address set. Try to connect to configured IP: " + configuration.getDeviceAddress());
+				// Todo: is device ID required?
+				// Todo: verder uitwerken...
+				selectedDeviceAddress = configuration.getDeviceAddress();
+				throw new RuntimeException("Not yet implemented.");
+			}
+		}
+	}
+
+	protected void loginAtPortal() throws IOException, AtagPageErrorException {
 
 		log.fine("POST authentication data: " + URL_LOGIN);
 
@@ -390,8 +465,8 @@ public class AtagOneApp {
 
 		Map<String, String> params = new LinkedHashMap<String, String>();
 		params.put("__RequestVerificationToken", requestVerificationToken);
-		params.put("Email", username);
-		params.put("Password", password);
+		params.put("Email", configuration.getEmail());
+		params.put("Password", configuration.getPassword());
 		params.put("RememberMe", "false");
 
 		String html = HTTPUtils.getPostPageContent(URL_LOGIN, params);
@@ -400,6 +475,197 @@ public class AtagOneApp {
 		if (StringUtils.isBlank(selectedDeviceId)) {
 			throw new IllegalStateException("No Device ID found, cannot continue.");
 		}
+	}
+
+	/**
+	 * Get all diagnostics for selected device.
+	 *
+	 * @return Map of diagnostic info
+	 * @throws IOException              in case of connection error
+	 * @throws IllegalArgumentException when no device selected
+	 */
+	protected Map<String, Object> getLocalDiagnostics()
+		throws IOException, IllegalArgumentException, AtagPageErrorException, InterruptedException, AccessDeniedException {
+
+		if (selectedDeviceAddress == null) {
+			throw new IllegalArgumentException("No device selected to connect to.");
+		}
+
+		if (StringUtils.isBlank(selectedDeviceId)) {
+			throw new IllegalArgumentException("No Device selected, cannot get diagnostics.");
+		}
+
+		final String pairUrl = "http://" + selectedDeviceAddress.getHostAddress() + ":10000/pair_message";
+		log.fine("POST pair_message: URL=" + pairUrl);
+
+		final DeviceInfo deviceInfo = HTTPUtils.getDeviceInfo();
+		String shortName = deviceInfo.getName();
+		if (shortName.contains(".")) {
+			shortName = shortName.split("\\.")[0];
+		}
+
+		String macAddress = deviceInfo.getMac();
+		String deviceName = shortName + " " + EXECUTABLE_NAME + " API";
+
+		// HTTP(S) Connect.
+		String jsonPayload = "{\"pair_message\":{\"seqnr\":0,\"accounts\":" +
+			"{\"entries\":[{" +
+			"\"user_account\":\"\"," +
+			"\"mac_address\":\"" + macAddress + "\"," +
+			"\"device_name\":\"" + deviceName + "\"," +
+			"\"account_type\":0}]}}}";
+
+		// 1 = Pending
+		// 2 = Accepted
+		// 3 = Denied
+		Integer accStatus = null;
+		for (int i = 0; i < MAX_THERMOSTAT_AUTH_RETRIES; i++) {
+
+			// { "pair_reply":{ "seqnr":0,"acc_status":1} }
+			String response = HTTPUtils.getPostPageContent(pairUrl, jsonPayload);
+			log.fine("POST pair_message Response\n" + response);
+
+			accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");
+			if (accStatus == null) {
+				throw new IllegalStateException("Error during pair request. 'acc_status' is null.");
+			}
+			// Wait and try again within x seconds.
+			if (accStatus != 2) {
+				System.out.println("Access not granted yet. Please grant access to '" + deviceName + "'.");
+				Thread.sleep(5000);
+			} else {
+				break;
+			}
+		}
+
+		if (accStatus == 1) {
+			throw new IllegalStateException("Please grant access to connect to the " + THERMOSTAT_NAME + " thermostat.");
+		}
+		if (accStatus == 3) {
+			throw new AccessDeniedException("Access to the " + THERMOSTAT_NAME + " thermostat is denied.");
+		}
+
+		// {"retrieve_message":{"seqnr":0,"account_auth":{"user_account":"atag@juurlink.org","mac_address":"6C:40:08:B6:E2:80"},"info":15}}
+		final int info = MESSAGE_INFO_CONTROL + MESSAGE_INFO_REPORT;
+		jsonPayload = "{\"retrieve_message\":{" +
+			"\"seqnr\":0," +
+			"\"account_auth\":{" +
+			"\"user_account\":\"\"," +
+			"\"mac_address\":\"" + macAddress + "\"}," +
+			"\"info\":" + info + "}}\n";
+
+		String response = HTTPUtils.getPostPageContent(pairUrl, jsonPayload);
+		log.fine("POST retrieve_message Response\n" + response);
+
+		/*
+		{ "retrieve_reply":{ "seqnr":0,
+
+		"status":{
+	x	"device_id":"6808-1401-3109_15-30-001-544",
+	x	"device_status":16385,
+	x	"connection_status":23,
+		"date_time":503187998},
+
+		"report":{
+	x	"report_time":503187998,
+	x	"burning_hours":257.09,
+	x	"device_errors":"",
+	x	"boiler_errors":"",
+	x	"room_temp":20.6,
+	x	"outside_temp":5.1,
+	x	"dbg_outside_temp":22.3,
+	x	"pcb_temp":25.0,
+	x	"ch_setpoint":28.1,
+	x	"dhw_water_temp":33.6,
+	x	"ch_water_temp":32.8,
+	x	"dhw_water_pres":0.0,
+	x	"ch_water_pres":1.5,
+	x	"ch_return_temp":33.2,
+	x	"boiler_status":770,
+	x	"boiler_config":772,
+	x	"ch_time_to_temp":0,
+	x	"shown_set_temp":20.5,
+	x	"power_cons":0,
+	x	"rssi":26,
+	x	"current":-155,
+	x	"voltage":3846,
+	x	"resets":11,
+	x	"memory_allocation":2800},
+
+		"control": {
+	x	"ch_status":13,
+	x	"ch_control_mode":0,
+	x	"ch_mode":1,
+	x	"ch_mode_duration":0,
+	x	"ch_mode_temp":20.5,
+	x	"dhw_temp_setp":60.0,
+	x	"dhw_status":5,
+	x	"dhw_mode":1,
+	x	"dhw_mode_temp":60.0,
+	x	"weather_temp":5.1,
+	x	"weather_status":9,
+	x	"vacation_duration":0,
+	x	"extend_duration":0,
+	x	"fireplace_duration":10800
+		} ,
+		"acc_status":2} }
+		 */
+
+		// Scrape values from HTML page.
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put(VALUE_DEVICE_ID, selectedDeviceId);
+		// VALUE_DEVICE_ALIAS; Locally unknown
+		final Integer reportTime = JSONUtils.getJSONValueByName(response, Integer.class, "report_time");
+
+		if (reportTime != null) {
+			final Date dateObject = CalendarUtils.toDateObject(reportTime);
+			values.put(VALUE_LATEST_REPORT_TIME, CalendarUtils.formatDate(dateObject));
+		}
+		// VALUE_CONNECTED_TO
+		values.put(VALUE_BURNING_HOURS, JSONUtils.getJSONValueByName(response, BigDecimal.class, "burning_hours"));
+		values.put(VALUE_ROOM_TEMPERATURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "room_temp"));
+		values.put(VALUE_OUTSIDE_TEMPERATURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "outside_temp"));
+		values.put(VALUE_DHW_SETPOINT, JSONUtils.getJSONValueByName(response, BigDecimal.class, "dhw_temp_setp"));
+		values.put(VALUE_DHW_WATER_TEMPERATURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "dhw_water_temp"));
+		values.put(VALUE_CH_SETPOINT, JSONUtils.getJSONValueByName(response, BigDecimal.class, "ch_setpoint"));
+		values.put(VALUE_CH_WATER_TEMPERATURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "ch_water_temp"));
+		values.put(VALUE_CH_WATER_PRESSURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "ch_water_pres"));
+		values.put(VALUE_CH_RETURN_TEMPERATURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "ch_return_temp"));
+		values.put(VALUE_TARGET_TEMPERATURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "shown_set_temp"));
+
+		// Values only local available.
+		values.put("deviceStatus", JSONUtils.getJSONValueByName(response, Integer.class, "device_status"));
+		values.put("connectionStatus", JSONUtils.getJSONValueByName(response, Integer.class, "connection_status"));
+		values.put("device_errors", JSONUtils.getJSONValueByName(response, String.class, "device_errors"));
+		values.put("boiler_errors", JSONUtils.getJSONValueByName(response, String.class, "boiler_errors"));
+		values.put("dbg_outside_temp", JSONUtils.getJSONValueByName(response, BigDecimal.class, "dbg_outside_temp"));
+		values.put("pcb_temp", JSONUtils.getJSONValueByName(response, BigDecimal.class, "pcb_temp"));
+		values.put("dhw_water_temp", JSONUtils.getJSONValueByName(response, BigDecimal.class, "dhw_water_temp"));
+		values.put("dhw_water_pres", JSONUtils.getJSONValueByName(response, BigDecimal.class, "dhw_water_pres"));
+		values.put("boiler_status", JSONUtils.getJSONValueByName(response, Integer.class, "boiler_status"));
+		values.put("boiler_config", JSONUtils.getJSONValueByName(response, Integer.class, "boiler_config"));
+		values.put("ch_time_to_temp", JSONUtils.getJSONValueByName(response, Integer.class, "ch_time_to_temp"));
+		values.put("power_cons", JSONUtils.getJSONValueByName(response, Integer.class, "power_cons"));
+		values.put("rssi", JSONUtils.getJSONValueByName(response, Integer.class, "rssi"));
+		values.put("current", JSONUtils.getJSONValueByName(response, Integer.class, "current"));
+		values.put("voltage", JSONUtils.getJSONValueByName(response, Integer.class, "voltage"));
+		values.put("resets", JSONUtils.getJSONValueByName(response, Integer.class, "resets"));
+		values.put("memory_allocation", JSONUtils.getJSONValueByName(response, Integer.class, "memory_allocation"));
+		values.put("ch_status", JSONUtils.getJSONValueByName(response, Integer.class, "ch_status"));
+		values.put("ch_control_mode", JSONUtils.getJSONValueByName(response, Integer.class, "ch_control_mode"));
+		values.put("ch_mode", JSONUtils.getJSONValueByName(response, Integer.class, "ch_mode"));
+		values.put("ch_mode_duration", JSONUtils.getJSONValueByName(response, BigDecimal.class, "ch_mode_duration"));
+		values.put("ch_mode_temp", JSONUtils.getJSONValueByName(response, BigDecimal.class, "ch_mode_temp"));
+		values.put("dhw_status", JSONUtils.getJSONValueByName(response, Integer.class, "dhw_status"));
+		values.put("dhw_mode", JSONUtils.getJSONValueByName(response, Integer.class, "dhw_mode"));
+		values.put("weather_temp", JSONUtils.getJSONValueByName(response, BigDecimal.class, "weather_temp"));
+		values.put("weather_status", JSONUtils.getJSONValueByName(response, Integer.class, "weather_status"));
+		values.put("vacation_duration", JSONUtils.getJSONValueByName(response, Integer.class, "vacation_duration"));
+		values.put("extend_duration", JSONUtils.getJSONValueByName(response, Integer.class, "extend_duration"));
+		values.put("fireplace_duration", JSONUtils.getJSONValueByName(response, Integer.class, "fireplace_duration"));
+
+		return values;
+
 	}
 
 	/**

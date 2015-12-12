@@ -11,7 +11,7 @@ public class AtagOneAppTest {
 
 	@Before
 	public void setUp() {
-		atagOneApp = new AtagOneApp();
+		atagOneApp = new AtagOneApp(null);
 	}
 
 	@Test
