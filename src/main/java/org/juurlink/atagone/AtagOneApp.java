@@ -178,6 +178,7 @@ public class AtagOneApp {
 			final Float temperature = configuration.getTemperature();
 
 			if (temperature != null) {
+
 				// Set temperature
 				BigDecimal currentRoomTemperature = atagOneApp.setDeviceSetPoint(temperature);
 				System.out.println(String.format(Locale.US, "%.1f", currentRoomTemperature));
@@ -187,7 +188,7 @@ public class AtagOneApp {
 				Map<String, Object> diagnoses;
 
 				if (atagOneApp.selectedDeviceIsLocal) {
-					diagnoses = atagOneApp.getLocalDiagnostics();
+					diagnoses = atagOneApp.getLocalDiagnostics(MAX_THERMOSTAT_CONNECTION_RETRIES);
 				} else {
 					diagnoses = atagOneApp.getDiagnostics();
 				}
@@ -491,11 +492,12 @@ public class AtagOneApp {
 	/**
 	 * Get all diagnostics for selected device.
 	 *
+	 * @param maxRetries Max number of retries
 	 * @return Map of diagnostic info
 	 * @throws IOException              in case of connection error
 	 * @throws IllegalArgumentException when no device selected
 	 */
-	protected Map<String, Object> getLocalDiagnostics()
+	protected Map<String, Object> getLocalDiagnostics(int maxRetries)
 		throws IOException, IllegalArgumentException, AtagPageErrorException, InterruptedException, AccessDeniedException {
 
 		if (selectedDeviceAddress == null) {
@@ -509,6 +511,7 @@ public class AtagOneApp {
 		final String pairUrl = "http://" + selectedDeviceAddress.getHostAddress() + ":10000/pair_message";
 		log.fine("POST pair_message: URL=" + pairUrl);
 
+		// Get the local (short) hostname.
 		final DeviceInfo deviceInfo = HTTPUtils.getDeviceInfo();
 		String shortName = deviceInfo.getName();
 		if (shortName.contains(".")) {
@@ -533,7 +536,7 @@ public class AtagOneApp {
 		for (int i = 0; i < MAX_THERMOSTAT_AUTH_RETRIES; i++) {
 
 			// { "pair_reply":{ "seqnr":0,"acc_status":1} }
-			String response = HTTPUtils.getPostPageContent(pairUrl, jsonPayload);
+			String response = HTTPUtils.getPostPageContent(pairUrl, jsonPayload, maxRetries);
 			log.fine("POST pair_message Response\n" + response);
 
 			accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");
@@ -565,7 +568,7 @@ public class AtagOneApp {
 			"\"mac_address\":\"" + macAddress + "\"}," +
 			"\"info\":" + info + "}}\n";
 
-		String response = HTTPUtils.getPostPageContent(pairUrl, jsonPayload);
+		String response = HTTPUtils.getPostPageContent(pairUrl, jsonPayload, maxRetries);
 		log.fine("POST retrieve_message Response\n" + response);
 
 		/*
@@ -809,13 +812,16 @@ public class AtagOneApp {
 	@Nullable
 	protected OneInfo searchOnes(int maxRetries) throws IOException {
 
+		if (maxRetries < 0) {
+			throw new IllegalArgumentException("'maxRetries' value cannot be smaller than zero.");
+		}
+
 		final int PORT = 11000;
 
 		// Listen to all UDP packets send to port 11,000.
 		DatagramSocket datagramSocket = null;
 
 		try {
-			maxRetries--;
 			datagramSocket = new DatagramSocket(PORT, InetAddress.getByName("0.0.0.0"));
 			datagramSocket.setBroadcast(true);
 			datagramSocket.setSoTimeout(MAX_THERMOSTAT_CONNECTION_TIMEOUT);
@@ -839,13 +845,13 @@ public class AtagOneApp {
 			// Retry another time.
 			if (maxRetries > 0) {
 				log.fine(e.toString());
-				log.fine(maxRetries + " retries to go, try again.");
-
+				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
+				maxRetries--;
 				return searchOnes(maxRetries);
-			} else {
+			}
 				// Connection failure.
 				throw e;
-			}
+
 		} finally {
 			if (datagramSocket != null) {
 				datagramSocket.disconnect();

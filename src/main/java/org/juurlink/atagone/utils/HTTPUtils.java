@@ -84,7 +84,7 @@ public class HTTPUtils {
 	/**
 	 * Get POST page content; form url encoded.
 	 *
-	 * @param url URL to connect to
+	 * @param url        URL to connect to
 	 * @param parameters POST parameters
 	 * @return Full page content html
 	 * @throws IOException            in case of connection error
@@ -115,14 +115,19 @@ public class HTTPUtils {
 	/**
 	 * Get POST page content.
 	 *
-	 * @param url URL to connect to
-	 * @param json JSON payload
+	 * @param url        URL to connect to
+	 * @param json       JSON payload
+	 * @param maxRetries Max number of retries in case of IOException
 	 * @return Full page content html or json
 	 * @throws IOException            in case of connection error
 	 * @throws AtagPageErrorException in case the page contains an error message
 	 */
 	@Nonnull
-	public static String getPostPageContent(@NonNull String url, @NonNull String json) throws IOException, AtagPageErrorException {
+	public static String getPostPageContent(@NonNull String url, @NonNull String json, int maxRetries) throws IOException, AtagPageErrorException {
+
+		if (maxRetries < 0) {
+			throw new IllegalArgumentException("'maxRetries' value cannot be smaller than zero.");
+		}
 
 		byte[] postData = json.getBytes(Charset.forName("UTF-8"));
 
@@ -137,6 +142,17 @@ public class HTTPUtils {
 		try {
 			outputStream = httpConnection.getOutputStream();
 			outputStream.write(postData);
+
+		} catch (IOException e) {
+			if (maxRetries > 0) {
+				log.fine(e.toString());
+				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
+				maxRetries--;
+				return getPostPageContent(url, json, maxRetries);
+			}
+			// Connection failure.
+			throw e;
+
 		} finally {
 			IOUtils.closeQuietly(outputStream);
 		}
