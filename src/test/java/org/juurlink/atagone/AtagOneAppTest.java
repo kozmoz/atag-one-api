@@ -17,7 +17,7 @@ public class AtagOneAppTest {
 	@Test
 	@Ignore("Cannot test this in a Junit test")
 	public void testSearchOnes() throws Exception {
-		final OneInfo oneInfo = atagOneApp.searchOnes();
+		final OneInfo oneInfo = atagOneApp.searchOnes(0);
 		System.out.println("oneInfo = " + oneInfo);
 	}
 }

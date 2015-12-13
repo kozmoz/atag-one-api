@@ -105,7 +105,18 @@ public class AtagOneApp {
 	private static final String PROPERTY_NAME_MAVEN_BUILD_DATE = "buildDate";
 	private static final String META_INF_MANIFEST_MF = "/META-INF/MANIFEST.MF";
 
-	private static final int MAX_THERMOSTAT_AUTH_RETRIES = 10;
+	/**
+	 * Connection timeout in milliseconds.
+	 */
+	private static final int MAX_THERMOSTAT_CONNECTION_TIMEOUT = 30000;
+	/**
+	 * Max number of connection retries. Sometimes a request result in "Connection Error: Unexpected end of file from server".
+	 */
+	private static final int MAX_THERMOSTAT_CONNECTION_RETRIES = 3;
+	/**
+	 * Max number of times to wait for thermostat authorization.
+	 */
+	private static final int MAX_THERMOSTAT_AUTH_RETRIES = 15;
 
 	private static final int MESSAGE_INFO_CONTROL = 1;
 	private static final int MESSAGE_INFO_SCHEDULES = 2;
@@ -211,7 +222,7 @@ public class AtagOneApp {
 
 		} catch (IOException e) {
 			// Print human readable error message.
-			System.err.println("Connection Error: " + e.getMessage());
+			System.err.println("Input Output Error: " + e.getMessage());
 			System.err.println();
 
 			System.exit(1);
@@ -430,12 +441,12 @@ public class AtagOneApp {
 	 */
 	protected void login() throws IOException, AtagPageErrorException, AtagSearchErrorException {
 		if (configuration.getEmail() != null && configuration.getDeviceAddress() != null) {
-			log.fine("Email address set, login ar " + THERMOSTAT_NAME + " portal.");
+			log.fine("Email address set, login at " + THERMOSTAT_NAME + " portal.");
 			loginAtPortal();
 		} else {
 			if (configuration.getDeviceAddress() == null) {
 				log.fine("No email address set, Try to find the " + THERMOSTAT_NAME + " in the local network.");
-				OneInfo oneInfo = searchOnes();
+				OneInfo oneInfo = searchOnes(MAX_THERMOSTAT_CONNECTION_RETRIES);
 				if (oneInfo == null) {
 					throw new AtagSearchErrorException("Cannot find " + THERMOSTAT_NAME + " thermostat in local network.");
 				}
@@ -792,10 +803,11 @@ public class AtagOneApp {
 	/**
 	 * Search for thermostat in local network.
 	 *
+	 * @param maxRetries Max number of retries after connection failure
 	 * @return Info about the thermostat found, or null when noting found
 	 */
 	@Nullable
-	protected OneInfo searchOnes() throws IOException {
+	protected OneInfo searchOnes(int maxRetries) throws IOException {
 
 		final int PORT = 11000;
 
@@ -803,9 +815,10 @@ public class AtagOneApp {
 		DatagramSocket datagramSocket = null;
 
 		try {
+			maxRetries--;
 			datagramSocket = new DatagramSocket(PORT, InetAddress.getByName("0.0.0.0"));
 			datagramSocket.setBroadcast(true);
-			datagramSocket.setSoTimeout(30000);
+			datagramSocket.setSoTimeout(MAX_THERMOSTAT_CONNECTION_TIMEOUT);
 
 			// Receive.
 			byte[] receiveData = new byte[37];
@@ -821,6 +834,18 @@ public class AtagOneApp {
 			}
 			return null;
 
+		} catch (IOException e) {
+
+			// Retry another time.
+			if (maxRetries > 0) {
+				log.fine(e.toString());
+				log.fine(maxRetries + " retries to go, try again.");
+
+				return searchOnes(maxRetries);
+			} else {
+				// Connection failure.
+				throw e;
+			}
 		} finally {
 			if (datagramSocket != null) {
 				datagramSocket.disconnect();
