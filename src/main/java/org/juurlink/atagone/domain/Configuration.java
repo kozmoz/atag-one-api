@@ -1,9 +1,11 @@
 package org.juurlink.atagone.domain;
 
-import java.net.InetAddress;
+import java.math.BigDecimal;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.juurlink.atagone.utils.StringUtils;
 
 import lombok.Value;
 
@@ -13,7 +15,7 @@ import lombok.Value;
 @Value
 public class Configuration {
 	@Nullable
-	Float temperature;
+	BigDecimal temperature;
 	@Nullable
 	private String email;
 	@Nullable
@@ -21,7 +23,11 @@ public class Configuration {
 	private boolean debug;
 	@Nonnull
 	private FORMAT format;
-	@Nullable
-	private InetAddress deviceAddress;
-	// Todo: Device ID?
+
+	/**
+	 * When no portal email address given, we presume local operation.
+	 */
+	public boolean isLocal() {
+		return StringUtils.isBlank(email);
+	}
 }

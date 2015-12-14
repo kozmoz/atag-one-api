@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -30,6 +33,7 @@ import org.juurlink.atagone.domain.DeviceInfo;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.java.Log;
 
@@ -42,6 +46,11 @@ public class HTTPUtils {
 
 	private static final String ENCODING_UTF_8 = "UTF-8";
 	private static final String USER_AGENT = "Mozilla/5.0 (compatible; AtagOneApp/0.1; http://atag.one/)";
+
+	/**
+	 * Time between retries in milliseconds.
+	 */
+	private static final int MAX_TIME_BETWEEN_RETRIES = 2000;
 
 	private static final String REQUEST_METHOD_POST = "POST";
 	private static final String REQUEST_HEADER_CONTENT_TYPE = "Content-Type";
@@ -65,6 +74,11 @@ public class HTTPUtils {
 	// De computer kan meerdere IP adressen hebben (en meerdere interfaces)
 	private static final List<InetAddress> localHost = new ArrayList<InetAddress>();
 	private static final int TIMEOUT_REACHABLE = 1000;
+
+	static {
+		// Configure default in-memory cookie store.
+		CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
+	}
 
 	/**
 	 * Get GET page content.
@@ -123,6 +137,7 @@ public class HTTPUtils {
 	 * @throws AtagPageErrorException in case the page contains an error message
 	 */
 	@Nonnull
+	@SneakyThrows
 	public static String getPostPageContent(@NonNull String url, @NonNull String json, int maxRetries) throws IOException, AtagPageErrorException {
 
 		if (maxRetries < 0) {
@@ -148,6 +163,7 @@ public class HTTPUtils {
 				log.fine(e.toString());
 				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
 				maxRetries--;
+				Thread.sleep(MAX_TIME_BETWEEN_RETRIES);
 				return getPostPageContent(url, json, maxRetries);
 			}
 			// Connection failure.
