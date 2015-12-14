@@ -21,15 +21,20 @@ A typical message looks like this:
         "chWaterTemperature": 18.1,
         "chWaterPressure": 1.5,
         "chReturnTemperature": 18.1
+        "targetTemperature" : 18
     }
 
 ## Usage
 
-Get diagnostic info:
+Connect to the ATAG One thermostat on your local network and get diagnostic data: 
+
+    $ java -jar atag-one.jar
+
+Get diagnostic data from the ATAG One internet portal:
 
     $ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd
 
-Set room temperature to 20.5 degrees celsius:
+Set the target room temperature to 20.5 degrees celsius via the ATAG One internet portal:
 
     $ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd --set 20.5
 
