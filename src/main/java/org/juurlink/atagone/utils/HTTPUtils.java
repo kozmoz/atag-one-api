@@ -64,12 +64,12 @@ public class HTTPUtils {
 	/**
 	 * HTTP Connect timeout in milliseconds.
 	 */
-	private static final int HTTP_CONNECT_TIMEOUT = 5000;
+	private static final int HTTP_CONNECT_TIMEOUT = 10000;
 
 	/**
 	 * HTTP Read timeout in milliseconds.
 	 */
-	private static final int HTTP_READ_TIMEOUT = 5000;
+	private static final int HTTP_READ_TIMEOUT = 10000;
 
 	// De computer kan meerdere IP adressen hebben (en meerdere interfaces)
 	private static final List<InetAddress> localHost = new ArrayList<InetAddress>();
