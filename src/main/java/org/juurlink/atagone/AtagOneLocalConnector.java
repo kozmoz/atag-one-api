@@ -169,7 +169,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			}
 			// Wait and try again within x seconds.
 			if (accStatus != 2) {
-				System.out.println("Access not granted yet. Please grant access to '" + deviceName + "'.");
+				System.out.println("Access not yet granted. Please press the Ok button on the '" + deviceName + "' to grant access. \n" +
+					"By pressing the Ok button you prove that you have physical access to the thermostat. \n" +
+					"This is only a one time action per device that wants to connect.");
 				Thread.sleep(5000);
 			} else {
 				break;
@@ -177,7 +179,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		}
 
 		if (accStatus == 1) {
-			throw new IllegalStateException("Please grant access to connect to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat.");
+			throw new IllegalStateException("Please grant access to connect to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat. \n" +
+				"This is only a one time action per device that wants to connect.");
 		}
 		if (accStatus == 3) {
 			throw new AccessDeniedException("Access to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat is denied.");
