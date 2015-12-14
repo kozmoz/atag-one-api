@@ -125,7 +125,7 @@ header img {
 a.button {
     display: block;
     float: left;
-    width: 179px;
+    width: 285px;
     padding: 12px 8px 12px 8px;
     margin-right: 14px;
     font-size: 15px;
@@ -173,7 +173,7 @@ a.button span {
     padding-left: 50px;
 }
 
-#download-zip span {
+#download-zip span, #show-releases span {
     background: transparent url(../images/zip-icon.png) 12px 50% no-repeat;
 }
 
@@ -185,7 +185,7 @@ a.button span {
     background: transparent url(../images/octocat-icon.png) 12px 50% no-repeat;
 }
 
-#view-on-github {
+#show-releases {
     margin-right: 0;
 }
 
@@ -402,10 +402,6 @@ footer img {
 
     #downloads {
         margin-bottom: 25px;
-    }
-
-    #download-zip, #download-tar-gz {
-        display: none;
     }
 
     .inner {
