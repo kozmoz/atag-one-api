@@ -1,14 +1,14 @@
 # ATAG One API
 ## Get diagnostic data from your ATAG One
 
-Get all diagnostic data from your ATAG One thermostat [https://www.atag-one.com] with just one simple command.
+Get all diagnostic data from your ATAG One thermostat with just one simple command.
 
 A typical message looks like this:
 
     {
         "deviceId": "6808-1401-3109_15-30-001-123",
         "deviceAlias": "CV-ketel",
-        "latestReportTime": "2015-11-21 00:07:28",
+        "latestReportTime": "2015-12-14 12:10:04",
         "connectedTo": "BCU",
         "burningHours": 41.4,
         "boilerHeatingFor": "-",
@@ -43,4 +43,7 @@ The software is provided "as is", without warranty of any kind.
 
 ## Website
 
-Project website http://atag.one 
+Project website http://atag.one
+ 
+ATAG One manufacturer product website https://www.atag-one.com  
+
