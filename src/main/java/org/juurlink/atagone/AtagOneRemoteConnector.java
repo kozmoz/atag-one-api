@@ -132,7 +132,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 		final BigDecimal targetTempNumber = new BigDecimal(targetTemp != null ? targetTemp : "0");
 		values.put(VALUE_TARGET_TEMPERATURE, targetTempNumber);
 		values.put(VALUE_CURRENT_MODE, JSONUtils.getJSONValueByName(html, String.class, "currentMode"));
-		values.put(VALUE_VACATION_PLANNED, JSONUtils.getJSONValueByName(html, String.class, "vacationPlanned"));
+		values.put(VALUE_VACATION_PLANNED, JSONUtils.getJSONValueByName(html, Boolean.class, "vacationPlanned"));
 
 		return values;
 	}
