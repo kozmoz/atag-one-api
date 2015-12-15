@@ -7,12 +7,12 @@ import javax.annotation.Nonnull;
 import lombok.Value;
 
 /**
- * ATAG One info.
+ * Received UDP message.
  */
 @Value
-public class OneInfo {
+public class UdpMessage {
 	@Nonnull
 	private InetAddress deviceAddress;
 	@Nonnull
-	private String deviceId;
+	private String message;
 }

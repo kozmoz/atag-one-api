@@ -7,6 +7,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -30,6 +32,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.juurlink.atagone.domain.DeviceInfo;
+import org.juurlink.atagone.domain.UdpMessage;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 
 import lombok.NonNull;
@@ -44,36 +47,38 @@ import lombok.extern.java.Log;
 @UtilityClass
 public class HTTPUtils {
 
+	/**
+	 * Max number of connection retries. Sometimes a request result in "Connection Error: Unexpected end of file from server".
+	 */
+	public static final int MAX_CONNECTION_RETRIES = 3;
 	private static final String ENCODING_UTF_8 = "UTF-8";
 	private static final String USER_AGENT = "Mozilla/5.0 (compatible; AtagOneApp/0.1; http://atag.one/)";
-
-	/**
-	 * Time between retries in milliseconds.
-	 */
-	private static final int MAX_TIME_BETWEEN_RETRIES = 2000;
-
 	private static final String REQUEST_METHOD_POST = "POST";
 	private static final String REQUEST_HEADER_CONTENT_TYPE = "Content-Type";
 	private static final String REQUEST_HEADER_CONTENT_LENGTH = "Content-Length";
 	private static final String REQUEST_HEADER_ACCEPT_CHARSET = "Accept-Charset";
 	private static final String REQUEST_HEADER_ACCEPT = "Accept";
 	private static final String REQUEST_HEADER_USER_AGENT = "User-Agent";
-
 	private static final Pattern PATTERN_PAGE_ERROR = Pattern.compile("<li class=\"text-error\"><span>(.*?)</span>", Pattern.DOTALL);
-
+	// De computer kan meerdere IP adressen hebben (en meerdere interfaces)
+	private static final List<InetAddress> localHost = new ArrayList<InetAddress>();
+	private static final int TIMEOUT_REACHABLE_MS = 1000;
 	/**
 	 * HTTP Connect timeout in milliseconds.
 	 */
-	private static final int HTTP_CONNECT_TIMEOUT = 10000;
-
+	private static final int HTTP_CONNECT_TIMEOUT_MS = 10000;
 	/**
 	 * HTTP Read timeout in milliseconds.
 	 */
-	private static final int HTTP_READ_TIMEOUT = 10000;
-
-	// De computer kan meerdere IP adressen hebben (en meerdere interfaces)
-	private static final List<InetAddress> localHost = new ArrayList<InetAddress>();
-	private static final int TIMEOUT_REACHABLE = 1000;
+	private static final int HTTP_READ_TIMEOUT_MS = 10000;
+	/**
+	 * Connection timeout in milliseconds.
+	 */
+	private static final int MAX_CONNECTION_TIMEOUT_MS = 30000;
+	/**
+	 * Time between retries in milliseconds.
+	 */
+	private static final int MAX_TIME_BETWEEN_RETRIES_MS = 2000;
 
 	static {
 		// Configure default in-memory cookie store.
@@ -163,7 +168,7 @@ public class HTTPUtils {
 				log.fine(e.toString());
 				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
 				maxRetries--;
-				Thread.sleep(MAX_TIME_BETWEEN_RETRIES);
+				Thread.sleep(MAX_TIME_BETWEEN_RETRIES_MS);
 				return getPostPageContent(url, json, maxRetries);
 			}
 			// Connection failure.
@@ -273,7 +278,7 @@ public class HTTPUtils {
 						}
 
 						try {
-							if (ip.isReachable(TIMEOUT_REACHABLE)) {
+							if (ip.isReachable(TIMEOUT_REACHABLE_MS)) {
 								addresses.put(ifaceName, ip);
 							}
 						} catch (IOException e) {
@@ -320,6 +325,76 @@ public class HTTPUtils {
 	}
 
 	/**
+	 * Receive UDP broadcast message.
+	 *
+	 * @param port              UDP port to listen on
+	 * @param maxTimeoutSeconds Max number of seconds to wait for message
+	 * @param messageTag        Message identification tag
+	 * @param maxRetries        Number of retries in case of IOException
+	 * @return Message found or null in case no message
+	 */
+	@Nullable
+	public static UdpMessage getUdpBroadcastMessage(final int port, final int maxTimeoutSeconds, final String messageTag, int maxRetries)
+		throws IOException, InterruptedException {
+
+		if (maxTimeoutSeconds < 0) {
+			throw new IllegalArgumentException("'maxTimeoutSeconds' value cannot be smaller than zero.");
+		}
+
+		DatagramSocket datagramSocket = null;
+		long endTimeMs = System.currentTimeMillis() + (maxTimeoutSeconds * 1000);
+
+		try {
+			// Listen to all UDP packets to any interface to port 'port'.
+			datagramSocket = new DatagramSocket(port, InetAddress.getByName("0.0.0.0"));
+			datagramSocket.setBroadcast(true);
+			datagramSocket.setSoTimeout(MAX_CONNECTION_TIMEOUT_MS);
+
+			// ATAG One message size is 37 bytes and that is the only message we are interested in.
+			byte[] receiveData = new byte[37];
+
+			// Keep reading received messages until time runs out.
+			while (System.currentTimeMillis() < endTimeMs) {
+
+				final DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
+				datagramSocket.receive(datagramPacket);
+
+				final InetAddress messageInetAddress = datagramPacket.getAddress();
+				final String receivedMessage = new String(datagramPacket.getData(), ENCODING_UTF_8);
+
+				// Found message
+				if (receivedMessage.startsWith(messageTag)) {
+					return new UdpMessage(messageInetAddress, receivedMessage);
+				}
+			}
+
+			return null;
+
+		} catch (IOException e) {
+
+			// Retry another time.
+			if (maxRetries > 0) {
+				log.fine(e.toString());
+				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
+
+				maxRetries--;
+				Thread.sleep(MAX_TIME_BETWEEN_RETRIES_MS);
+				return getUdpBroadcastMessage(port, maxTimeoutSeconds, messageTag, maxRetries);
+
+			} else {
+				// Retries exhausted; Connection failure.
+				throw e;
+			}
+
+		} finally {
+			if (datagramSocket != null) {
+				datagramSocket.disconnect();
+				IOUtils.closeQuietly(datagramSocket);
+			}
+		}
+	}
+
+	/**
 	 * Get page contents from given httpUrlConnection en close the streams.
 	 *
 	 * @param httpConnection Opened connection
@@ -334,10 +409,12 @@ public class HTTPUtils {
 			final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
 
 			// Does the page contain an error message?
-			// Todo: only in case of HTML response.
-			String errorMessage = extractPageErrorFromHtml(html);
-			if (!StringUtils.isBlank(errorMessage)) {
-				throw new AtagPageErrorException(errorMessage);
+			// (Only in case of HTML response.)
+			if (html.contains("<")) {
+				String errorMessage = extractPageErrorFromHtml(html);
+				if (!StringUtils.isBlank(errorMessage)) {
+					throw new AtagPageErrorException(errorMessage);
+				}
 			}
 			return html;
 
@@ -370,8 +447,8 @@ public class HTTPUtils {
 		httpConnection.setRequestProperty(REQUEST_HEADER_ACCEPT_CHARSET, ENCODING_UTF_8);
 		httpConnection.setRequestProperty(REQUEST_HEADER_ACCEPT, "*/*");
 		httpConnection.setRequestProperty(REQUEST_HEADER_USER_AGENT, USER_AGENT);
-		httpConnection.setConnectTimeout(HTTP_CONNECT_TIMEOUT);
-		httpConnection.setReadTimeout(HTTP_READ_TIMEOUT);
+		httpConnection.setConnectTimeout(HTTP_CONNECT_TIMEOUT_MS);
+		httpConnection.setReadTimeout(HTTP_READ_TIMEOUT_MS);
 		return httpConnection;
 	}
 

@@ -19,6 +19,7 @@ public interface AtagOneConnectorInterface {
 
 	// Result map keys.
 	String VALUE_DEVICE_ID = "deviceId";
+	String VALUE_DEVICE_IP = "deviceIP";
 	String VALUE_DEVICE_ALIAS = "deviceAlias";
 	String VALUE_LATEST_REPORT_TIME = "latestReportTime";
 	String VALUE_CONNECTED_TO = "connectedTo";
