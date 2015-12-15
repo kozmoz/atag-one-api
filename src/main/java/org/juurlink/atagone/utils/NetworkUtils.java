@@ -45,7 +45,7 @@ import lombok.extern.java.Log;
  */
 @Log
 @UtilityClass
-public class HTTPUtils {
+public class NetworkUtils {
 
 	/**
 	 * Max number of connection retries. Sometimes a request result in "Connection Error: Unexpected end of file from server".
@@ -97,7 +97,7 @@ public class HTTPUtils {
 		// HTTP(S) Connect.
 		HttpURLConnection httpConnection = createHttpConnection(url);
 
-		return toPageResponse(httpConnection);
+		return toPageResponse(httpConnection, MAX_CONNECTION_RETRIES);
 	}
 
 	/**
@@ -128,7 +128,7 @@ public class HTTPUtils {
 			IOUtils.closeQuietly(outputStream);
 		}
 
-		return toPageResponse(httpConnection);
+		return toPageResponse(httpConnection, MAX_CONNECTION_RETRIES);
 	}
 
 	/**
@@ -142,7 +142,7 @@ public class HTTPUtils {
 	 * @throws AtagPageErrorException in case the page contains an error message
 	 */
 	@Nonnull
-	@SneakyThrows
+	@SneakyThrows(InterruptedException.class)
 	public static String getPostPageContent(@NonNull String url, @NonNull String json, int maxRetries) throws IOException, AtagPageErrorException {
 
 		if (maxRetries < 0) {
@@ -164,21 +164,35 @@ public class HTTPUtils {
 			outputStream.write(postData);
 
 		} catch (IOException e) {
+
+			// Extra debugging info.
+			ThreadLocal<String> threadLocal = new ThreadLocal<String>();
+			String message = StringUtils.defaultString(threadLocal.get());
+
 			if (maxRetries > 0) {
+
 				log.fine(e.toString());
 				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
+
+				message += e.toString() + "\n" + "But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.";
+				threadLocal.set(message);
+
 				maxRetries--;
 				Thread.sleep(MAX_TIME_BETWEEN_RETRIES_MS);
 				return getPostPageContent(url, json, maxRetries);
 			}
 			// Connection failure.
-			throw e;
+
+			message += e.toString() + "\n" + "Connection Failure.";
+			threadLocal.set(message);
+
+			throw new IOException(message, e);
 
 		} finally {
 			IOUtils.closeQuietly(outputStream);
 		}
 
-		return toPageResponse(httpConnection);
+		return toPageResponse(httpConnection, maxRetries);
 	}
 
 	/**
@@ -398,10 +412,13 @@ public class HTTPUtils {
 	 * Get page contents from given httpUrlConnection en close the streams.
 	 *
 	 * @param httpConnection Opened connection
+	 * @param maxRetries     Number of retries in case of IOException
 	 * @return pageContent as String
 	 */
 	@Nonnull
-	protected static String toPageResponse(@NonNull final HttpURLConnection httpConnection) throws AtagPageErrorException, IOException {
+	@SneakyThrows(InterruptedException.class)
+	protected static String toPageResponse(@NonNull final HttpURLConnection httpConnection, int maxRetries)
+		throws AtagPageErrorException, IOException {
 		InputStream inputStreamStd = null;
 		InputStream inputStreamErr = null;
 		try {
@@ -420,12 +437,27 @@ public class HTTPUtils {
 
 		} catch (IOException e) {
 
+			// Extra debugging info.
+			ThreadLocal<String> threadLocal = new ThreadLocal<String>();
+			String message = StringUtils.defaultString(threadLocal.get());
+
+			// Retry another time.
+			if (maxRetries > 0) {
+				log.fine(e.toString());
+				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
+
+				maxRetries--;
+				Thread.sleep(MAX_TIME_BETWEEN_RETRIES_MS);
+				return toPageResponse(httpConnection, maxRetries);
+			}
+
+			// Retries exhausted; Connection failure.
 			inputStreamErr = httpConnection.getErrorStream();
-			final String html = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
+			final String errorResponse = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
 
 			// Log debug details in case of error.
-			log.fine(html);
-			throw e;
+			log.fine(errorResponse);
+			throw new IOException(message + "\n" + errorResponse, e);
 
 		} finally {
 			IOUtils.closeQuietly(inputStreamStd);

@@ -9,7 +9,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.juurlink.atagone.domain.DeviceInfo;
 
-public class HTTPUtilsTest {
+public class NetworkUtilsTest {
 
 	@Test
 	public void testCreatePostBody() throws Exception {
@@ -19,7 +19,7 @@ public class HTTPUtilsTest {
 		params.put("Password", "Password&^%");
 		params.put("RememberMe", "false");
 
-		final byte[] result = HTTPUtils.createPostBody(params);
+		final byte[] result = NetworkUtils.createPostBody(params);
 		String resultString = new String(result, "UTF-8");
 
 		assertEquals("__RequestVerificationToken=123456-123%25%26&Email=username%40test.com&Password=Password%26%5E%25&RememberMe=false",
@@ -34,14 +34,14 @@ public class HTTPUtilsTest {
 			"                                </li>\n" +
 			"                            </ul>\n" +
 			"                        </div>\n";
-		String message = HTTPUtils.extractPageErrorFromHtml(html);
+		String message = NetworkUtils.extractPageErrorFromHtml(html);
 		String expected = "Your account has been locked out due to multiple failed login attempts. It will be unlocked in 12 minutes.";
 		assertEquals(expected, message);
 	}
 
 	@Test
 	public void testGetMacAddress() throws Exception {
-		final DeviceInfo deviceInfo = HTTPUtils.getDeviceInfo();
+		final DeviceInfo deviceInfo = NetworkUtils.getDeviceInfo();
 		assertNotNull(deviceInfo);
 		assertNotNull(deviceInfo.getName());
 		assertNotNull(deviceInfo.getIp());

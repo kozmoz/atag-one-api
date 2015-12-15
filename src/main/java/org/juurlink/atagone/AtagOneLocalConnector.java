@@ -17,8 +17,8 @@ import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
 import org.juurlink.atagone.utils.CalendarUtils;
-import org.juurlink.atagone.utils.HTTPUtils;
 import org.juurlink.atagone.utils.JSONUtils;
+import org.juurlink.atagone.utils.NetworkUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
 import lombok.NonNull;
@@ -75,7 +75,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		this.configuration = configuration;
 
 		// Computer mac address (used for authorization with thermostat)
-		computerInfo = HTTPUtils.getDeviceInfo();
+		computerInfo = NetworkUtils.getDeviceInfo();
 	}
 
 	/**
@@ -150,7 +150,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		int maxRetries = 3;
 		String response = null;
 		while (StringUtils.isBlank(response) || maxRetries > 0) {
-			response = HTTPUtils.getPostPageContent(messageUrl, jsonPayload, HTTPUtils.MAX_CONNECTION_RETRIES);
+			response = NetworkUtils.getPostPageContent(messageUrl, jsonPayload, NetworkUtils.MAX_CONNECTION_RETRIES);
 			log.fine("POST retrieve_message Response\n" + response);
 			maxRetries--;
 
@@ -279,8 +279,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 */
 	@Nullable
 	protected AtagOneInfo searchOnes() throws IOException, InterruptedException {
-		final UdpMessage udpMessage = HTTPUtils
-			.getUdpBroadcastMessage(UDP_BROADCAST_PORT, MAX_LISTEN_TIMEOUT_SECONDS, "ONE ", HTTPUtils.MAX_CONNECTION_RETRIES);
+		final UdpMessage udpMessage = NetworkUtils
+			.getUdpBroadcastMessage(UDP_BROADCAST_PORT, MAX_LISTEN_TIMEOUT_SECONDS, "ONE ", NetworkUtils.MAX_CONNECTION_RETRIES);
 
 		if (udpMessage != null && udpMessage.getMessage().startsWith("ONE ")) {
 			String deviceId = udpMessage.getMessage().split(" ")[1];
@@ -331,7 +331,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		for (int i = 0; i < MAX_AUTH_RETRIES; i++) {
 
 			// { "pair_reply":{ "seqnr":0,"acc_status":1} }
-			String response = HTTPUtils.getPostPageContent(pairUrl, jsonPayload, HTTPUtils.MAX_CONNECTION_RETRIES);
+			String response = NetworkUtils.getPostPageContent(pairUrl, jsonPayload, NetworkUtils.MAX_CONNECTION_RETRIES);
 			log.fine("POST pair_message Response\n" + response);
 
 			accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");

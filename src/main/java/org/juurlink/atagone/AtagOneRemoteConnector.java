@@ -12,8 +12,8 @@ import javax.annotation.Nonnull;
 import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.utils.HTMLUtils;
-import org.juurlink.atagone.utils.HTTPUtils;
 import org.juurlink.atagone.utils.JSONUtils;
+import org.juurlink.atagone.utils.NetworkUtils;
 import org.juurlink.atagone.utils.NumberUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
@@ -70,8 +70,8 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 		params.put("Password", configuration.getPassword());
 		params.put("RememberMe", "false");
 
-		String html = HTTPUtils.getPostPageContent(URL_LOGIN, params);
-		selectedDeviceId = HTMLUtils.extractDeviceIdFromHtml(html);
+		String html = NetworkUtils.getPostPageContent(URL_LOGIN, params);
+		selectedDeviceId = HTMLUtils.extractDeviceId(html);
 
 		if (StringUtils.isBlank(selectedDeviceId)) {
 			throw new IllegalStateException("No Device ID found, cannot continue.");
@@ -98,7 +98,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 		log.fine("GET diagnostics: URL=" + diagnosticsUrl);
 
 		// HTTP(S) Connect.
-		String html = HTTPUtils.getPageContent(diagnosticsUrl);
+		String html = NetworkUtils.getPageContent(diagnosticsUrl);
 		log.fine("GET diagnostics: Response HTML\n" + html);
 
 		// Scrape values from HTML page.
@@ -125,7 +125,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 		log.fine("GET deviceControl: URL=" + deviceControlUrl);
 
 		// HTTP(S) Connect.
-		html = HTTPUtils.getPageContent(deviceControlUrl);
+		html = NetworkUtils.getPageContent(deviceControlUrl);
 		log.fine("GET deviceControl: Response HTML\n" + html);
 
 		final String targetTemp = JSONUtils.getJSONValueByName(html, String.class, "targetTemp");
@@ -177,7 +177,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 
 		// Response contains current temperature.
 		// {\"ch_control_mode\":0,\"temp_influenced\":false,\"room_temp\":18.0,\"ch_mode_temp\":18.2,\"is_heating\":true,\"vacationPlanned\":false,\"temp_increment\":null,\"round_half\":false,\"schedule_base_temp\":null,\"outside_temp\":null}
-		final String html = HTTPUtils.getPostPageContent(newUrl, params);
+		final String html = NetworkUtils.getPostPageContent(newUrl, params);
 		BigDecimal roomTemperature = JSONUtils.getJSONValueByName(html, BigDecimal.class, JSON_ROOM_TEMP);
 		if (roomTemperature != null) {
 			return roomTemperature;
@@ -202,10 +202,10 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 
 		// Try to replace device id, ignore when no replace string available.
 		final String newUrl = url.replace("{0}", StringUtils.defaultString(selectedDeviceId));
-		String html = HTTPUtils.getPageContent(newUrl);
+		String html = NetworkUtils.getPageContent(newUrl);
 
 		// Get request verification.
-		String requestVerificationToken = HTMLUtils.extractRequestVerificationTokenFromHtml(html);
+		String requestVerificationToken = HTMLUtils.extractRequestVerificationToken(html);
 		if (!StringUtils.isBlank(requestVerificationToken)) {
 			return requestVerificationToken;
 		}

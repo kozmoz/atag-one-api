@@ -69,7 +69,7 @@ public class HTMLUtils {
 	 * @return RequestVerificationToken or null when not found in HTML
 	 */
 	@Nullable
-	public static String extractRequestVerificationTokenFromHtml(@Nonnull @NonNull final String html) {
+	public static String extractRequestVerificationToken(@Nonnull @NonNull final String html) {
 		String result = null;
 		@SuppressWarnings("SpellCheckingInspection")
 		// <input name="__RequestVerificationToken" type="hidden" value="lFVlMZlt2-YJKAwZWS_K_p3gsQWjZOvBNBZ3lM8io_nFGFL0oRsj4YwQUdqGfyrEqGwEUPmm0FgKH1lPWdk257tuTWQ1" />
@@ -87,7 +87,7 @@ public class HTMLUtils {
 	 * @return Device ID or null when ID not found within HTML
 	 */
 	@Nullable
-	public static String extractDeviceIdFromHtml(@Nonnull @NonNull final String html) {
+	public static String extractDeviceId(@Nonnull @NonNull final String html) {
 		String result = null;
 		// <tr onclick="javascript:changeDeviceAndRedirect('/Home/Index/{0}','6808-1401-3109_15-30-001-544');">
 		final Matcher matcher = PATTERN_DEVICE_ID.matcher(html);

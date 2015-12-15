@@ -74,7 +74,7 @@ public class HTMLUtilsTest {
 			"            <div class=\"form-group\">\n" +
 			"                <input class=\"form-control input-lg text-center\" id=\"Email\" name=\"Email\" placeholder=\"Email\" type=\"email\" value=\"\" />\n";
 
-		final String actual = HTMLUtils.extractRequestVerificationTokenFromHtml(html);
+		final String actual = HTMLUtils.extractRequestVerificationToken(html);
 		assertEquals("lFVlMZlt2-YJKAwZWS_K_p3gsQWjZOvBNBZ3lM8io_nFGFL0oRsj4YwQUdqGfyrEqGwEUPmm0FgKH1lPWdk257tuTWQ1", actual);
 	}
 
@@ -82,7 +82,7 @@ public class HTMLUtilsTest {
 	public void testGetDeviceId() throws Exception {
 		final String html = "<tr onclick=\"javascript:changeDeviceAndRedirect('/Home/Index/{0}','6808-1401-3109_15-30-001-555');\">";
 
-		final String actual = HTMLUtils.extractDeviceIdFromHtml(html);
+		final String actual = HTMLUtils.extractDeviceId(html);
 		assertEquals("6808-1401-3109_15-30-001-555", actual);
 	}
 }
