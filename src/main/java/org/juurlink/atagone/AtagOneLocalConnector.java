@@ -10,18 +10,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.juurlink.atagone.domain.AtagOneInfo;
-import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.DeviceInfo;
 import org.juurlink.atagone.domain.UdpMessage;
 import org.juurlink.atagone.exceptions.AccessDeniedException;
-import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
 import org.juurlink.atagone.utils.CalendarUtils;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.NetworkUtils;
+import org.juurlink.atagone.utils.NumberUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
-import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.java.Log;
 
@@ -44,9 +42,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	private static final int SLEEP_BETWEEN_AUTH_REQUESTS_MS = 5000;
 
 	private static final int MESSAGE_INFO_CONTROL = 1;
+	private static final int MESSAGE_INFO_REPORT = 8;
 	//private static final int MESSAGE_INFO_SCHEDULES = 2;
 	//private static final int MESSAGE_INFO_CONFIGURATION = 4;
-	private static final int MESSAGE_INFO_REPORT = 8;
 	//private static final int MESSAGE_INFO_STATUS = 16;
 	//private static final int MESSAGE_INFO_WIFISCAN = 32;
 
@@ -55,8 +53,6 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 */
 	private static final int UDP_BROADCAST_PORT = 11000;
 	private static final int SLEEP_BETWEEN_FAILURE_MS = 2000;
-
-	private final Configuration configuration;
 
 	private final DeviceInfo computerInfo;
 
@@ -71,9 +67,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 *
 	 * @throws IOException when error getting local device address
 	 */
-	public AtagOneLocalConnector(@Nonnull @NonNull final Configuration configuration) throws IOException {
+	public AtagOneLocalConnector() throws IOException {
 		log.fine("Instantiate " + AtagOneApp.THERMOSTAT_NAME + " local connector");
-		this.configuration = configuration;
 
 		// Computer mac address (used for authorization with thermostat)
 		computerInfo = NetworkUtils.getDeviceInfo();
@@ -87,7 +82,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	@Nonnull
 	@Override
 	@SneakyThrows
-	public String login() throws IOException, AtagPageErrorException, AtagSearchErrorException {
+	public String login() throws IOException {
 
 		log.fine("Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
 		selectedDevice = searchOnes();
@@ -104,11 +99,56 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		return selectedDevice.getDeviceId();
 	}
 
-	@Nonnull
 	@Override
-	public BigDecimal setTemperature() {
-		log.fine("Set target temperature to " + configuration.getTemperature() + " degrees celsius");
-		throw new RuntimeException("'setTemperature' method not yet implemented for thermostat in local network.");
+	@Nullable
+	public BigDecimal setTemperature(final BigDecimal targetTemperature) throws IOException {
+
+		if (selectedDevice == null) {
+			throw new IllegalArgumentException("No device selected, cannot set temperature.");
+		}
+
+		if (computerInfo == null) {
+			throw new IllegalArgumentException("Cannot determine MAC address of computer, cannot set temperature.");
+		}
+
+		// Discard the precision and round by half.
+		float roundedTemperature = NumberUtils.roundHalf(targetTemperature.floatValue());
+		if (roundedTemperature < AtagOneApp.TEMPERATURE_MIN || roundedTemperature > AtagOneApp.TEMPERATURE_MAX) {
+			throw new IllegalArgumentException(
+				"Device temperature out of bounds: " + roundedTemperature + ". Needs to be between " + AtagOneApp.TEMPERATURE_MIN +
+					" (inclusive) and " + AtagOneApp.TEMPERATURE_MAX + " (inclusive)");
+		}
+
+		final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":10000/retrieve";
+		log.fine("POST retrieve: URL=" + messageUrl);
+
+		// Get computer MAC address.
+		final String macAddress = computerInfo.getMac();
+
+		final String jsonPayload = "{\"update_message\":{" +
+			"\"seqnr\":0," +
+			"\"account_auth\":{" +
+			"\"user_account\":\"\"," +
+			"\"mac_address\":\"" + macAddress + "\"}," +
+			"\"device\":null," +
+			"\"status\":null," +
+			"\"report\":null," +
+			"\"configuration\":null," +
+			"\"schedules\":null," +
+			"\"control\":{" +
+			"\"ch_mode_temp\":" + roundedTemperature +
+			"}}}\n";
+		String response = executeRequest(messageUrl, jsonPayload);
+
+		// Response:
+		// { "update_reply":{ "seqnr":0,"status":{"device_id":"6808-1401-3109_15-30-001-544","device_status":16385,"connection_status":23,"date_time":503527795},"acc_status":2} }
+		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");
+		if (accStatus == null || accStatus != 2) {
+			throw new IllegalStateException("Setting the temperature was not successful.");
+		}
+
+		// Get and return current room temperature.
+		return (BigDecimal) getDiagnostics().get(VALUE_ROOM_TEMPERATURE);
 	}
 
 	/**
@@ -120,9 +160,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 */
 	@Nonnull
 	@Override
-	@SneakyThrows(InterruptedException.class)
 	public Map<String, Object> getDiagnostics()
-		throws IOException, IllegalArgumentException, AtagPageErrorException, AccessDeniedException {
+		throws IOException, IllegalArgumentException {
 
 		if (selectedDevice == null) {
 			throw new IllegalArgumentException("No device selected, cannot get diagnostics.");
@@ -148,33 +187,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			"\"info\":" + info + "}}\n";
 
 		// Sometimes the response is empty, try multiple times.
-		int maxRetries = 10;
-		String response = null;
-		while (StringUtils.isBlank(response) && maxRetries > 0) {
-			maxRetries--;
-			try {
-				response = NetworkUtils.getPostPageContent(messageUrl, jsonPayload);
-				log.fine("POST retrieve_message Response\n" + response);
-
-			} catch (IOException e) {
-				if (maxRetries > 0) {
-					log.fine(e.toString());
-				} else {
-					// Tried n times.
-					throw e;
-				}
-			}
-
-			if (StringUtils.isBlank(response) && maxRetries > 0) {
-				log.fine("Empty response, try again.");
-				Thread.sleep(SLEEP_BETWEEN_FAILURE_MS);
-			}
-		}
-
-		// Cannot happen, just for sure.
-		if (StringUtils.isBlank(response)) {
-			throw new IllegalStateException("Empty diagnostics response");
-		}
+		String response = executeRequest(messageUrl, jsonPayload);
 
 		/*
 		{ "retrieve_reply":{ "seqnr":0,
@@ -312,7 +325,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 * Start authorization proces with thermostat.
 	 */
 	@SneakyThrows(InterruptedException.class)
-	protected void authorizeWithThermostat() throws IOException, AtagPageErrorException, AccessDeniedException {
+	protected void authorizeWithThermostat() throws IOException {
 
 		if (selectedDevice == null) {
 			throw new IllegalArgumentException("No device selected, cannot authorize with thermostat.");
@@ -349,34 +362,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		for (int i = 0; i < MAX_AUTH_RETRIES; i++) {
 
 			// Sometimes the response is empty, try multiple times.
-			int maxRetries = 10;
-			String response = null;
-			while (StringUtils.isBlank(response) && maxRetries > 0) {
-				maxRetries--;
-				try {
-					// { "pair_reply":{ "seqnr":0,"acc_status":1} }
-					response = NetworkUtils.getPostPageContent(pairUrl, jsonPayload);
-					log.fine("POST pair_message Response\n" + response);
-
-				} catch (IOException e) {
-					if (maxRetries > 0) {
-						log.fine(e.toString());
-					} else {
-						// Tried n times.
-						throw e;
-					}
-				}
-
-				if (StringUtils.isBlank(response) && maxRetries > 0) {
-					log.fine("Empty response, try again.");
-					Thread.sleep(SLEEP_BETWEEN_FAILURE_MS);
-				}
-			}
-
-			// Cannot happen, just for sure.
-			if (StringUtils.isBlank(response)) {
-				throw new IllegalStateException("Empty authorize response");
-			}
+			String response = executeRequest(pairUrl, jsonPayload);
 
 			accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");
 			if (accStatus == null) {
@@ -386,7 +372,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			if (accStatus != 2) {
 				System.out.println("Access not yet granted. Please press the Ok button on the '" + deviceName + "' to grant access. \n" +
 					"By pressing the Ok button you prove that you have physical access to the thermostat. \n" +
-					"This is only a one time action per device that wants to connect.");
+					"This is only an one time action per device that wants to connect.");
 				Thread.sleep(SLEEP_BETWEEN_AUTH_REQUESTS_MS);
 			} else {
 				break;
@@ -401,4 +387,46 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			throw new AccessDeniedException("Access to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat is denied.");
 		}
 	}
+
+	/**
+	 * Execute request, in case of empty response or connection error, try multiple times.
+	 *
+	 * @param url         URL to connect
+	 * @param jsonPayload Payload JSON message
+	 * @return Response
+	 */
+	@Nonnull
+	@SneakyThrows(InterruptedException.class)
+	protected String executeRequest(final String url, final String jsonPayload) throws IOException {
+		// Sometimes the response is empty, try multiple times.
+		int maxRetries = 10;
+		String response = null;
+		while (StringUtils.isBlank(response) && maxRetries > 0) {
+			maxRetries--;
+			try {
+				response = NetworkUtils.getPostPageContent(url, jsonPayload);
+				log.fine("POST Response\n" + response);
+
+			} catch (IOException e) {
+				if (maxRetries > 0) {
+					log.fine(e.toString());
+				} else {
+					// Tried n times.
+					throw e;
+				}
+			}
+
+			if (StringUtils.isBlank(response) && maxRetries > 0) {
+				log.fine("Empty response, try again.");
+				Thread.sleep(SLEEP_BETWEEN_FAILURE_MS);
+			}
+		}
+
+		// Cannot happen, just for sure.
+		if (StringUtils.isBlank(response)) {
+			throw new IllegalStateException("Empty response");
+		}
+		return response;
+	}
+
 }

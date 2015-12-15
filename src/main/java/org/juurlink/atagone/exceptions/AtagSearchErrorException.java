@@ -1,6 +1,8 @@
 package org.juurlink.atagone.exceptions;
 
-public class AtagSearchErrorException extends Exception {
+import java.io.IOException;
+
+public class AtagSearchErrorException extends IOException {
 
 	/**
 	 * Constructs an {@code IOException} with the specified detail message.

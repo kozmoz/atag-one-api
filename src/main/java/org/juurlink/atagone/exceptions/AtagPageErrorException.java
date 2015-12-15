@@ -1,6 +1,8 @@
 package org.juurlink.atagone.exceptions;
 
-public class AtagPageErrorException extends Exception {
+import java.io.IOException;
+
+public class AtagPageErrorException extends IOException {
 
 	/**
 	 * Constructs an {@code IOException} with the specified detail message.

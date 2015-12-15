@@ -9,8 +9,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import org.juurlink.atagone.domain.Configuration;
-import org.juurlink.atagone.exceptions.AtagPageErrorException;
+import org.juurlink.atagone.domain.PortalCredentials;
 import org.juurlink.atagone.utils.HTMLUtils;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.NetworkUtils;
@@ -34,7 +33,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 	private static final String URL_UPDATE_DEVICE_CONTROL = "https://portal.atag-one.com/Home/UpdateDeviceControl/?deviceId={0}";
 	private static final String URL_DEVICE_SET_SETPOINT = "https://portal.atag-one.com/Home/DeviceSetSetpoint";
 
-	private Configuration configuration;
+	private PortalCredentials portalCredentials;
 
 	/**
 	 * ATAG One device ID.
@@ -45,9 +44,9 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 	/**
 	 * Construct ATAG One connector to remote device.
 	 */
-	public AtagOneRemoteConnector(@Nonnull @NonNull final Configuration configuration) {
+	public AtagOneRemoteConnector(@Nonnull @NonNull final PortalCredentials portalCredentials) {
 		log.fine("Instantiate " + AtagOneApp.THERMOSTAT_NAME + " remote connector");
-		this.configuration = configuration;
+		this.portalCredentials = portalCredentials;
 	}
 
 	/**
@@ -56,7 +55,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 	 * @return Device ID
 	 */
 	@Nonnull
-	public String login() throws IOException, AtagPageErrorException {
+	public String login() throws IOException {
 
 		log.fine("Login at " + THERMOSTAT_NAME + " portal.");
 		log.fine("POST authentication data: " + URL_LOGIN);
@@ -66,8 +65,8 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 
 		Map<String, String> params = new LinkedHashMap<String, String>();
 		params.put("__RequestVerificationToken", requestVerificationToken);
-		params.put("Email", configuration.getEmail());
-		params.put("Password", configuration.getPassword());
+		params.put("Email", portalCredentials.getEmailAddress());
+		params.put("Password", portalCredentials.getPassword());
 		params.put("RememberMe", "false");
 
 		String html = NetworkUtils.getPostPageContent(URL_LOGIN, params);
@@ -88,7 +87,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 	 * @throws IllegalArgumentException when no device selected
 	 */
 	@Nonnull
-	public Map<String, Object> getDiagnostics() throws IOException, IllegalArgumentException, AtagPageErrorException {
+	public Map<String, Object> getDiagnostics() throws IOException, IllegalArgumentException {
 
 		if (StringUtils.isBlank(selectedDeviceId)) {
 			throw new IllegalArgumentException("No Device selected, cannot get diagnostics.");
@@ -139,27 +138,19 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 
 	/**
 	 * Set thermostat target temperature.
-	 *
-	 * @return current room temperature or null when temperature not found in response
 	 */
-	@Nonnull
 	@Override
-	public BigDecimal setTemperature() throws IOException, IllegalArgumentException, AtagPageErrorException {
+	public BigDecimal setTemperature(@Nonnull @NonNull final BigDecimal targetTemperature)
+		throws IOException, IllegalArgumentException, IllegalStateException {
 
-		final BigDecimal targetTemperature = configuration.getTemperature();
 		log.fine("Set target temperature to " + targetTemperature + " degrees celsius");
-
-		if (targetTemperature == null) {
-			throw new IllegalArgumentException("Trying to set target temperature, but temperature to set is null.");
-		}
 
 		// Discard the precision and round by half.
 		float roundedTemperature = NumberUtils.roundHalf(targetTemperature.floatValue());
 		if (roundedTemperature < AtagOneApp.TEMPERATURE_MIN || roundedTemperature > AtagOneApp.TEMPERATURE_MAX) {
 			throw new IllegalArgumentException(
 				"Device temperature out of bounds: " + roundedTemperature + ". Needs to be between " + AtagOneApp.TEMPERATURE_MIN +
-					" (inclusive) and " +
-					AtagOneApp.TEMPERATURE_MAX + " (inclusive)");
+					" (inclusive) and " + AtagOneApp.TEMPERATURE_MAX + " (inclusive)");
 		}
 		if (StringUtils.isBlank(selectedDeviceId)) {
 			throw new IllegalArgumentException("No Device selected, cannot get diagnostics.");
@@ -180,6 +171,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 		final String html = NetworkUtils.getPostPageContent(newUrl, params);
 		BigDecimal roomTemperature = JSONUtils.getJSONValueByName(html, BigDecimal.class, JSON_ROOM_TEMP);
 		if (roomTemperature != null) {
+			// Ok.
 			return roomTemperature;
 		}
 
@@ -194,7 +186,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 	 * @throws IOException           When error connecting to ATAG ONE portal
 	 * @throws IllegalStateException When session cannot be started
 	 */
-	protected String getRequestVerificationToken(@Nonnull @NonNull String url) throws IOException, IllegalStateException, AtagPageErrorException {
+	protected String getRequestVerificationToken(@Nonnull @NonNull String url) throws IOException, IllegalStateException {
 
 		log.fine("getRequestVerificationToken(" + url + ")");
 

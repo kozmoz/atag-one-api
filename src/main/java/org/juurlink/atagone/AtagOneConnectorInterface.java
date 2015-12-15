@@ -5,10 +5,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
-
-import org.juurlink.atagone.exceptions.AccessDeniedException;
-import org.juurlink.atagone.exceptions.AtagPageErrorException;
-import org.juurlink.atagone.exceptions.AtagSearchErrorException;
+import javax.annotation.Nullable;
 
 /**
  * ATAG One remote or local connector.
@@ -47,19 +44,22 @@ public interface AtagOneConnectorInterface {
 	 * @return Device ID
 	 */
 	@Nonnull
-	String login() throws IOException, AtagPageErrorException, AtagSearchErrorException;
+	String login() throws IOException;
+
+	/**
+	 * Get MAP of diagnostic data.
+	 *
+	 * @return Diagnostic data
+	 */
+	@Nonnull
+	Map<String, Object> getDiagnostics() throws IOException;
 
 	/**
 	 * Set temperature.
 	 *
-	 * @return current room temperature.
+	 * @param temperature Temperature in degrees celsius
+	 * @return Current room temperature or null when temperature unknown
 	 */
-	@Nonnull
-	BigDecimal setTemperature() throws IOException, AtagPageErrorException;
-
-	/**
-	 * Get MAP of diagnostic data.
-	 */
-	@Nonnull
-	Map<String, Object> getDiagnostics() throws InterruptedException, AccessDeniedException, AtagPageErrorException, IOException;
+	@Nullable
+	BigDecimal setTemperature(BigDecimal temperature) throws IOException;
 }

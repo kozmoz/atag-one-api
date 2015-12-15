@@ -23,6 +23,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.FORMAT;
+import org.juurlink.atagone.domain.PortalCredentials;
 import org.juurlink.atagone.domain.Version;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
@@ -42,7 +43,7 @@ public class AtagOneApp {
 	public static final String EXECUTABLE_NAME = "atag-one";
 
 	public static final int TEMPERATURE_MIN = 4;
-	public static final int TEMPERATURE_MAX = 30;
+	public static final int TEMPERATURE_MAX = 27;
 
 	// Command line options.
 	private static final String OPTION_EMAIL = "email";
@@ -74,9 +75,10 @@ public class AtagOneApp {
 			// Initialize ATAG ONE connector; Either local or remote.
 			AtagOneConnectorInterface atagOneConnector;
 			if (configuration.isLocal()) {
-				atagOneConnector = new AtagOneLocalConnector(configuration);
+				atagOneConnector = new AtagOneLocalConnector();
 			} else {
-				atagOneConnector = new AtagOneRemoteConnector(configuration);
+				PortalCredentials portalCredentials = new PortalCredentials(configuration.getEmail(), configuration.getPassword());
+				atagOneConnector = new AtagOneRemoteConnector(portalCredentials);
 			}
 
 			// Login; Either local or remote.
@@ -84,8 +86,10 @@ public class AtagOneApp {
 
 			// Set temperature?
 			if (configuration.getTemperature() != null) {
-				BigDecimal currentRoomTemperature = atagOneConnector.setTemperature();
-				System.out.println(String.format(Locale.US, "%.1f", currentRoomTemperature));
+				BigDecimal currentRoomTemperature = atagOneConnector.setTemperature(configuration.getTemperature());
+				if (currentRoomTemperature != null) {
+					System.out.println(String.format(Locale.US, "%.1f", currentRoomTemperature));
+				}
 
 			} else {
 				// Get diagnostics.
@@ -121,14 +125,6 @@ public class AtagOneApp {
 			}
 			System.out.println();
 
-		} catch (IOException e) {
-			// Print human readable error message; include class name in error.
-			System.err.println("Input Output Error: " + e.toString());
-			e.printStackTrace(System.err);
-			System.err.println();
-
-			System.exit(1);
-
 		} catch (IllegalStateException e) {
 			// Print human readable error message.
 			System.err.println("State Error: " + e.getMessage());
@@ -153,6 +149,14 @@ public class AtagOneApp {
 		} catch (AtagSearchErrorException e) {
 			// Print human readable error message.
 			System.err.println(e.getMessage());
+			System.err.println();
+
+			System.exit(1);
+
+		} catch (IOException e) {
+			// Print human readable error message; include class name in error.
+			System.err.println("Input Output Error: " + e.toString());
+			e.printStackTrace(System.err);
 			System.err.println();
 
 			System.exit(1);
