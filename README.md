@@ -26,9 +26,9 @@ A typical message looks like this:
 ## Usage
 ### Modes of Operation
 
-atag-one.jar has two modes of operation; Local and Remote. When in local mode, 
-it connects directly to the thermostat in the local network. When in remote mode, 
-it connects to the ATAG One portal.
+atag-one.jar has two modes of operation; _Local_ and _Remote_.  
+When in local mode, it connects directly to the thermostat in the local network. 
+When in remote mode, it connects to the ATAG One portal.
 
 ### Local Mode
 
