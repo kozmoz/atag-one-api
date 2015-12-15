@@ -1,14 +1,13 @@
 # ATAG One API
 ## Get diagnostic data from your ATAG One
 
-Get all diagnostic data from your ATAG One thermostat with just one simple command.
+Get diagnostic data from your ATAG One thermostat with just one simple command.
 
 A typical message looks like this:
 
     {
         "deviceId": "6808-1401-3109_15-30-001-123",
-        "deviceAlias": "CV-ketel",
-        "latestReportTime": "2015-12-14 12:10:04",
+        "latestReportTime": "2015-12-15 12:10:04",
         "connectedTo": "BCU",
         "burningHours": 41.4,
         "boilerHeatingFor": "-",
@@ -25,6 +24,13 @@ A typical message looks like this:
     }
 
 ## Usage
+### Modes of Operation
+
+atag-one.jar has two modes of operation; Local and Remote. When in local mode, 
+it connects directly to the thermostat in de local network. When in remote mode, 
+it connects to the ATAG One portal.
+
+### Local Mode
 
 Connect to the ATAG One thermostat on your local network and get diagnostic data: 
 
@@ -33,6 +39,8 @@ Connect to the ATAG One thermostat on your local network and get diagnostic data
 Set the target room temperature to 20.5 degrees celsius (on local network):
 
     $ java -jar atag-one.jar --set 20.5
+
+### Remote Mode
 
 Get diagnostic data via the ATAG One internet portal:
 
