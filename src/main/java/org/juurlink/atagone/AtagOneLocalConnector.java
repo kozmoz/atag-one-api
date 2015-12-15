@@ -99,6 +99,12 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		return selectedDevice.getDeviceId();
 	}
 
+	/**
+	 * Set temperature.
+	 *
+	 * @param targetTemperature Target temperature, between 4 and 27 (inclusive) and round by a half
+	 * @return Current room temperature
+	 */
 	@Override
 	@Nullable
 	public BigDecimal setTemperature(final BigDecimal targetTemperature) throws IOException {
@@ -141,7 +147,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		String response = executeRequest(messageUrl, jsonPayload);
 
 		// Response:
-		// { "update_reply":{ "seqnr":0,"status":{"device_id":"6808-1401-3109_15-30-001-544","device_status":16385,"connection_status":23,"date_time":503527795},"acc_status":2} }
+		// { "update_reply":{ "seqnr":0,"status":{"device_id":"6808-1401-3109_15-30-001-123","device_status":16385,"connection_status":23,"date_time":503527795},"acc_status":2} }
 		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");
 		if (accStatus == null || accStatus != 2) {
 			throw new IllegalStateException("Setting the temperature was not successful.");
