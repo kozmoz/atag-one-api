@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.juurlink.atagone.domain.DeviceInfo;
 
@@ -40,6 +41,7 @@ public class NetworkUtilsTest {
 	}
 
 	@Test
+	@Ignore("Does not run when no network interface available.")
 	public void testGetMacAddress() throws Exception {
 		final DeviceInfo deviceInfo = NetworkUtils.getDeviceInfo();
 		assertNotNull(deviceInfo);

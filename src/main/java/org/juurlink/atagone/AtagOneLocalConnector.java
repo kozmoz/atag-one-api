@@ -54,6 +54,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 * UDP port the thermostat sends its messages to.
 	 */
 	private static final int UDP_BROADCAST_PORT = 11000;
+	private static final int SLEEP_BETWEEN_FAILURE_MS = 2000;
 
 	private final Configuration configuration;
 
@@ -88,15 +89,14 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	@SneakyThrows
 	public String login() throws IOException, AtagPageErrorException, AtagSearchErrorException {
 
-		log.fine("No email address set, Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
-		AtagOneInfo atagOneInfo = searchOnes();
-		if (atagOneInfo == null) {
+		log.fine("Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
+		selectedDevice = searchOnes();
+		if (selectedDevice == null) {
 			throw new AtagSearchErrorException("Cannot find " + AtagOneApp.THERMOSTAT_NAME + " thermostat in local network.");
 		}
 
 		// Device found in local network.
-		log.fine(AtagOneApp.THERMOSTAT_NAME + " found in local network: " + atagOneInfo);
-		selectedDevice = atagOneInfo;
+		log.fine(AtagOneApp.THERMOSTAT_NAME + " found in local network: " + selectedDevice);
 
 		// Start authorization proces with thermostat.
 		authorizeWithThermostat();
@@ -120,8 +120,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 */
 	@Nonnull
 	@Override
+	@SneakyThrows(InterruptedException.class)
 	public Map<String, Object> getDiagnostics()
-		throws IOException, IllegalArgumentException, AtagPageErrorException, InterruptedException, AccessDeniedException {
+		throws IOException, IllegalArgumentException, AtagPageErrorException, AccessDeniedException {
 
 		if (selectedDevice == null) {
 			throw new IllegalArgumentException("No device selected, cannot get diagnostics.");
@@ -146,17 +147,33 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			"\"mac_address\":\"" + macAddress + "\"}," +
 			"\"info\":" + info + "}}\n";
 
-		// Sometimes the response is empty.
-		int maxRetries = 3;
+		// Sometimes the response is empty, try multiple times.
+		int maxRetries = 10;
 		String response = null;
-		while (StringUtils.isBlank(response) || maxRetries > 0) {
-			response = NetworkUtils.getPostPageContent(messageUrl, jsonPayload, NetworkUtils.MAX_CONNECTION_RETRIES);
-			log.fine("POST retrieve_message Response\n" + response);
+		while (StringUtils.isBlank(response) && maxRetries > 0) {
 			maxRetries--;
+			try {
+				response = NetworkUtils.getPostPageContent(messageUrl, jsonPayload);
+				log.fine("POST retrieve_message Response\n" + response);
+
+			} catch (IOException e) {
+				if (maxRetries > 0) {
+					log.fine(e.toString());
+				} else {
+					// Tried n times.
+					throw e;
+				}
+			}
 
 			if (StringUtils.isBlank(response) && maxRetries > 0) {
-				log.fine("Empty response, try another time.");
+				log.fine("Empty response, try again.");
+				Thread.sleep(SLEEP_BETWEEN_FAILURE_MS);
 			}
+		}
+
+		// Cannot happen, just for sure.
+		if (StringUtils.isBlank(response)) {
+			throw new IllegalStateException("Empty diagnostics response");
 		}
 
 		/*
@@ -269,7 +286,6 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		// Todo: get "flameStatus" from chStatus / chMode?
 
 		return values;
-
 	}
 
 	/**
@@ -279,10 +295,11 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 */
 	@Nullable
 	protected AtagOneInfo searchOnes() throws IOException, InterruptedException {
-		final UdpMessage udpMessage = NetworkUtils
-			.getUdpBroadcastMessage(UDP_BROADCAST_PORT, MAX_LISTEN_TIMEOUT_SECONDS, "ONE ", NetworkUtils.MAX_CONNECTION_RETRIES);
 
-		if (udpMessage != null && udpMessage.getMessage().startsWith("ONE ")) {
+		final String messageTag = "ONE ";
+		final UdpMessage udpMessage = NetworkUtils.getUdpBroadcastMessage(UDP_BROADCAST_PORT, MAX_LISTEN_TIMEOUT_SECONDS, messageTag);
+
+		if (udpMessage != null && udpMessage.getMessage().startsWith(messageTag)) {
 			String deviceId = udpMessage.getMessage().split(" ")[1];
 			return new AtagOneInfo(udpMessage.getDeviceAddress(), deviceId);
 		}
@@ -294,7 +311,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	/**
 	 * Start authorization proces with thermostat.
 	 */
-	protected void authorizeWithThermostat() throws IOException, AtagPageErrorException, InterruptedException, AccessDeniedException {
+	@SneakyThrows(InterruptedException.class)
+	protected void authorizeWithThermostat() throws IOException, AtagPageErrorException, AccessDeniedException {
 
 		if (selectedDevice == null) {
 			throw new IllegalArgumentException("No device selected, cannot authorize with thermostat.");
@@ -330,9 +348,35 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		Integer accStatus = null;
 		for (int i = 0; i < MAX_AUTH_RETRIES; i++) {
 
-			// { "pair_reply":{ "seqnr":0,"acc_status":1} }
-			String response = NetworkUtils.getPostPageContent(pairUrl, jsonPayload, NetworkUtils.MAX_CONNECTION_RETRIES);
-			log.fine("POST pair_message Response\n" + response);
+			// Sometimes the response is empty, try multiple times.
+			int maxRetries = 10;
+			String response = null;
+			while (StringUtils.isBlank(response) && maxRetries > 0) {
+				maxRetries--;
+				try {
+					// { "pair_reply":{ "seqnr":0,"acc_status":1} }
+					response = NetworkUtils.getPostPageContent(pairUrl, jsonPayload);
+					log.fine("POST pair_message Response\n" + response);
+
+				} catch (IOException e) {
+					if (maxRetries > 0) {
+						log.fine(e.toString());
+					} else {
+						// Tried n times.
+						throw e;
+					}
+				}
+
+				if (StringUtils.isBlank(response) && maxRetries > 0) {
+					log.fine("Empty response, try again.");
+					Thread.sleep(SLEEP_BETWEEN_FAILURE_MS);
+				}
+			}
+
+			// Cannot happen, just for sure.
+			if (StringUtils.isBlank(response)) {
+				throw new IllegalStateException("Empty authorize response");
+			}
 
 			accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");
 			if (accStatus == null) {

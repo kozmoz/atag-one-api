@@ -122,8 +122,8 @@ public class AtagOneApp {
 			System.out.println();
 
 		} catch (IOException e) {
-			// Print human readable error message.
-			System.err.println("Input Output Error: " + e.getMessage());
+			// Print human readable error message; include class name in error.
+			System.err.println("Input Output Error: " + e.toString());
 			e.printStackTrace(System.err);
 			System.err.println();
 

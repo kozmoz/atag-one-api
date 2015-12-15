@@ -36,7 +36,6 @@ import org.juurlink.atagone.domain.UdpMessage;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.java.Log;
 
@@ -50,7 +49,6 @@ public class NetworkUtils {
 	/**
 	 * Max number of connection retries. Sometimes a request result in "Connection Error: Unexpected end of file from server".
 	 */
-	public static final int MAX_CONNECTION_RETRIES = 3;
 	private static final String ENCODING_UTF_8 = "UTF-8";
 	private static final String USER_AGENT = "Mozilla/5.0 (compatible; AtagOneApp/0.1; http://atag.one/)";
 	private static final String REQUEST_METHOD_POST = "POST";
@@ -60,8 +58,7 @@ public class NetworkUtils {
 	private static final String REQUEST_HEADER_ACCEPT = "Accept";
 	private static final String REQUEST_HEADER_USER_AGENT = "User-Agent";
 	private static final Pattern PATTERN_PAGE_ERROR = Pattern.compile("<li class=\"text-error\"><span>(.*?)</span>", Pattern.DOTALL);
-	// De computer kan meerdere IP adressen hebben (en meerdere interfaces)
-	private static final List<InetAddress> localHost = new ArrayList<InetAddress>();
+
 	private static final int TIMEOUT_REACHABLE_MS = 1000;
 	/**
 	 * HTTP Connect timeout in milliseconds.
@@ -97,7 +94,7 @@ public class NetworkUtils {
 		// HTTP(S) Connect.
 		HttpURLConnection httpConnection = createHttpConnection(url);
 
-		return toPageResponse(httpConnection, MAX_CONNECTION_RETRIES);
+		return toPageResponse(httpConnection);
 	}
 
 	/**
@@ -128,26 +125,20 @@ public class NetworkUtils {
 			IOUtils.closeQuietly(outputStream);
 		}
 
-		return toPageResponse(httpConnection, MAX_CONNECTION_RETRIES);
+		return toPageResponse(httpConnection);
 	}
 
 	/**
 	 * Get POST page content.
 	 *
-	 * @param url        URL to connect to
-	 * @param json       JSON payload
-	 * @param maxRetries Max number of retries in case of IOException
+	 * @param url  URL to connect to
+	 * @param json JSON payload
 	 * @return Full page content html or json
 	 * @throws IOException            in case of connection error
 	 * @throws AtagPageErrorException in case the page contains an error message
 	 */
 	@Nonnull
-	@SneakyThrows(InterruptedException.class)
-	public static String getPostPageContent(@NonNull String url, @NonNull String json, int maxRetries) throws IOException, AtagPageErrorException {
-
-		if (maxRetries < 0) {
-			throw new IllegalArgumentException("'maxRetries' value cannot be smaller than zero.");
-		}
+	public static String getPostPageContent(@NonNull String url, @NonNull String json) throws IOException, AtagPageErrorException {
 
 		byte[] postData = json.getBytes(Charset.forName("UTF-8"));
 
@@ -163,36 +154,11 @@ public class NetworkUtils {
 			outputStream = httpConnection.getOutputStream();
 			outputStream.write(postData);
 
-		} catch (IOException e) {
-
-			// Extra debugging info.
-			ThreadLocal<String> threadLocal = new ThreadLocal<String>();
-			String message = StringUtils.defaultString(threadLocal.get());
-
-			if (maxRetries > 0) {
-
-				log.fine(e.toString());
-				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
-
-				message += e.toString() + "\n" + "But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.";
-				threadLocal.set(message);
-
-				maxRetries--;
-				Thread.sleep(MAX_TIME_BETWEEN_RETRIES_MS);
-				return getPostPageContent(url, json, maxRetries);
-			}
-			// Connection failure.
-
-			message += e.toString() + "\n" + "Connection Failure.";
-			threadLocal.set(message);
-
-			throw new IOException(message, e);
-
 		} finally {
 			IOUtils.closeQuietly(outputStream);
 		}
 
-		return toPageResponse(httpConnection, maxRetries);
+		return toPageResponse(httpConnection);
 	}
 
 	/**
@@ -253,10 +219,7 @@ public class NetworkUtils {
 	 */
 	public static synchronized List<InetAddress> getLocalHosts() {
 
-		// Cached results.
-		if (localHost.size() != 0) {
-			return localHost;
-		}
+		List<InetAddress> localHost = new ArrayList<InetAddress>();
 
 		try {
 			localHost.clear();
@@ -344,11 +307,10 @@ public class NetworkUtils {
 	 * @param port              UDP port to listen on
 	 * @param maxTimeoutSeconds Max number of seconds to wait for message
 	 * @param messageTag        Message identification tag
-	 * @param maxRetries        Number of retries in case of IOException
 	 * @return Message found or null in case no message
 	 */
 	@Nullable
-	public static UdpMessage getUdpBroadcastMessage(final int port, final int maxTimeoutSeconds, final String messageTag, int maxRetries)
+	public static UdpMessage getUdpBroadcastMessage(final int port, final int maxTimeoutSeconds, final String messageTag)
 		throws IOException, InterruptedException {
 
 		if (maxTimeoutSeconds < 0) {
@@ -381,24 +343,7 @@ public class NetworkUtils {
 					return new UdpMessage(messageInetAddress, receivedMessage);
 				}
 			}
-
 			return null;
-
-		} catch (IOException e) {
-
-			// Retry another time.
-			if (maxRetries > 0) {
-				log.fine(e.toString());
-				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
-
-				maxRetries--;
-				Thread.sleep(MAX_TIME_BETWEEN_RETRIES_MS);
-				return getUdpBroadcastMessage(port, maxTimeoutSeconds, messageTag, maxRetries);
-
-			} else {
-				// Retries exhausted; Connection failure.
-				throw e;
-			}
 
 		} finally {
 			if (datagramSocket != null) {
@@ -412,12 +357,10 @@ public class NetworkUtils {
 	 * Get page contents from given httpUrlConnection en close the streams.
 	 *
 	 * @param httpConnection Opened connection
-	 * @param maxRetries     Number of retries in case of IOException
 	 * @return pageContent as String
 	 */
 	@Nonnull
-	@SneakyThrows(InterruptedException.class)
-	protected static String toPageResponse(@NonNull final HttpURLConnection httpConnection, int maxRetries)
+	protected static String toPageResponse(@NonNull final HttpURLConnection httpConnection)
 		throws AtagPageErrorException, IOException {
 		InputStream inputStreamStd = null;
 		InputStream inputStreamErr = null;
@@ -437,27 +380,23 @@ public class NetworkUtils {
 
 		} catch (IOException e) {
 
-			// Extra debugging info.
-			ThreadLocal<String> threadLocal = new ThreadLocal<String>();
-			String message = StringUtils.defaultString(threadLocal.get());
-
-			// Retry another time.
-			if (maxRetries > 0) {
-				log.fine(e.toString());
-				log.fine("But " + maxRetries + " retr" + (maxRetries > 1 ? "ies" : "y") + " to go, try again.");
-
-				maxRetries--;
-				Thread.sleep(MAX_TIME_BETWEEN_RETRIES_MS);
-				return toPageResponse(httpConnection, maxRetries);
+			// Retries exhausted; Connection failure.
+			String errorResponse = null;
+			try {
+				inputStreamErr = httpConnection.getErrorStream();
+				errorResponse = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
+			} catch (IOException e2) {
+				// Ignore this error.
+				log.fine("Error reading error stream: " + e2);
 			}
 
-			// Retries exhausted; Connection failure.
-			inputStreamErr = httpConnection.getErrorStream();
-			final String errorResponse = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
-
 			// Log debug details in case of error.
-			log.fine(errorResponse);
-			throw new IOException(message + "\n" + errorResponse, e);
+			if (!StringUtils.isBlank(errorResponse)) {
+				log.fine(errorResponse);
+				throw new IOException(errorResponse, e);
+			} else {
+				throw e;
+			}
 
 		} finally {
 			IOUtils.closeQuietly(inputStreamStd);
