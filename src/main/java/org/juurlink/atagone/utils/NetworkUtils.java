@@ -182,12 +182,13 @@ public class NetworkUtils {
 		byte[] mac = network.getHardwareAddress();
 
 		// Convert mac address to human readable string.
-		StringBuilder macAddressString = new StringBuilder();
-		for (int i = 0; i < mac.length; i++) {
-			macAddressString.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
-		}
+		String macAddress = formatHardwareAddress(mac);
 
-		return new DeviceInfo(inetAddress.getHostName(), inetAddress, macAddressString.toString());
+		return DeviceInfo.builder()
+			.name(inetAddress.getHostName())
+			.ip(inetAddress)
+			.mac(macAddress)
+			.build();
 	}
 
 	/**
@@ -335,12 +336,15 @@ public class NetworkUtils {
 				final DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
 				datagramSocket.receive(datagramPacket);
 
-				final InetAddress messageInetAddress = datagramPacket.getAddress();
+				final InetAddress senderAddress = datagramPacket.getAddress();
 				final String receivedMessage = new String(datagramPacket.getData(), ENCODING_UTF_8);
 
 				// Found message
 				if (receivedMessage.startsWith(messageTag)) {
-					return new UdpMessage(messageInetAddress, receivedMessage);
+					return UdpMessage.builder()
+						.senderAddress(senderAddress)
+						.message(receivedMessage)
+						.build();
 				}
 			}
 			return null;
@@ -351,6 +355,18 @@ public class NetworkUtils {
 				IOUtils.closeQuietly(datagramSocket);
 			}
 		}
+	}
+
+	/**
+	 * Convert mac address to human readable string.
+	 */
+	@Nonnull
+	public static String formatHardwareAddress(final byte[] mac) {
+		StringBuilder macAddressString = new StringBuilder();
+		for (int i = 0; i < mac.length; i++) {
+			macAddressString.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+		}
+		return macAddressString.toString();
 	}
 
 	/**

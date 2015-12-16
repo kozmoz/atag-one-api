@@ -7,12 +7,14 @@ import javax.annotation.Nullable;
 
 import org.juurlink.atagone.utils.StringUtils;
 
+import lombok.Builder;
 import lombok.Value;
 
 /**
  * Program configurations value object.
  */
 @Value
+@Builder
 public class Configuration {
 	@Nullable
 	BigDecimal temperature;

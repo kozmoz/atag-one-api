@@ -77,7 +77,10 @@ public class AtagOneApp {
 			if (configuration.isLocal()) {
 				atagOneConnector = new AtagOneLocalConnector();
 			} else {
-				PortalCredentials portalCredentials = new PortalCredentials(configuration.getEmail(), configuration.getPassword());
+				PortalCredentials portalCredentials = PortalCredentials.builder()
+					.emailAddress(configuration.getEmail())
+					.password(configuration.getPassword())
+					.build();
 				atagOneConnector = new AtagOneRemoteConnector(portalCredentials);
 			}
 
@@ -277,8 +280,13 @@ public class AtagOneApp {
 					System.exit(1);
 				}
 			}
-
-			return new Configuration(temperature, email, password, debug, outputFormat);
+			return Configuration.builder()
+				.temperature(temperature)
+				.email(email)
+				.password(password)
+				.debug(debug)
+				.format(outputFormat)
+				.build();
 
 		} catch (ParseException e) {
 
@@ -321,7 +329,10 @@ public class AtagOneApp {
 			mavenBuildDate = mavenApplicationVersion = "Read Error";
 		}
 
-		return new Version(mavenApplicationVersion, mavenBuildDate);
+		return Version.builder()
+			.version(mavenApplicationVersion)
+			.timestamp(mavenBuildDate)
+			.build();
 	}
 
 	/**

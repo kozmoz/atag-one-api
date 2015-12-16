@@ -337,7 +337,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			// We received a message that matches our tag.
 			String deviceId = udpMessage.getMessage().split(" ")[1];
 			return AtagOneInfo.builder()
-				.deviceAddress(udpMessage.getDeviceAddress())
+				.deviceAddress(udpMessage.getSenderAddress())
 				.deviceId(deviceId)
 				.build();
 		}

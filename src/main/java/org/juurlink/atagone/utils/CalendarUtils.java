@@ -17,15 +17,15 @@ import lombok.experimental.UtilityClass;
 public class CalendarUtils {
 
 	/**
-	 * Convert Atag date to date Object.
+	 * Convert ATAG One date to Java date Object.
 	 *
 	 * @return Date object
 	 */
 	@Nonnull
-	public static Date toDateObject(final long date) {
+	public static Date toDateObject(final long atagOneDate) {
 		final Calendar calendar = Calendar.getInstance();
-		// Create seconds to milliseconds and add 30 years.
-		calendar.setTime(new Date(date * 1000L));
+		// Convert seconds to milliseconds and add 30 years.
+		calendar.setTime(new Date(atagOneDate * 1000L));
 		calendar.add(Calendar.YEAR, 30);
 		return calendar.getTime();
 	}

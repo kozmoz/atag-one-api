@@ -41,7 +41,7 @@ public class StringUtils {
 	}
 
 	/**
-	 * Sort list, ignore upper and lower case.
+	 * Sort list of Strings, ignore upper and lower case.
 	 *
 	 * @param stringList List to sort
 	 */
@@ -53,5 +53,4 @@ public class StringUtils {
 
 		Collections.sort(stringList, collator);
 	}
-
 }
