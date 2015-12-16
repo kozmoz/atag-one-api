@@ -40,9 +40,9 @@
         </header>
 
         <section id="downloads" class="clearfix">
+            <a href="https://github.com/kozmoz/atag-one-api/releases" id="show-releases" class="button"><span>Show Latest Releases</span></a>
             <a href="https://github.com/kozmoz/atag-one-api" id="view-on-github" class="button"
                target="-blank"><span>View Project on GitHub</span></a>
-            <a href="https://github.com/kozmoz/atag-one-api/releases" id="show-releases" class="button"><span>Show All Releases</span></a>
         </section>
 
         <hr>
@@ -55,7 +55,7 @@
             </h3>
 
             <p>
-                Get all diagnostic data from your <a href="https://atag-one.com" target="_blank">ATAG One thermostat</a> with just one simple
+                Get diagnostic data from your <a href="https://atag-one.com" target="_blank">ATAG One thermostat</a> with just one simple
                 command.
             </p>
             <p>
@@ -64,8 +64,9 @@
 
 <pre>
 {
-    "deviceId": "6808-1401-3109_15-30-001-123",
-    "latestReportTime": "<span class="bh-now">2015-11-19 13:46:44</span>",
+    deviceId: "6808-1401-3109_15-30-001-123",
+    latestReportTime: "<span class="bh-now">2015-12-15 13:46:44</span>",
+    deviceIP: "10.0.100.50",
     burningHours: 283.91,
     roomTemperature: 19.9,
     outsideTemperature: 4.4,
@@ -76,39 +77,12 @@
     chWaterPressure: 1.6,
     chReturnTemperature: 40.3,
     targetTemperature: 20.0,
-    deviceStatus: 16385,
-    connectionStatus: 23,
     deviceErrors: "",
     boilerErrors: "",
-    dbgOutsideTemp: 22.7,
-    pcbTemp: 26.3,
     dhwWaterTemp: 46.8,
     dhwWaterPres: 0.0,
-    boilerStatus: 778,
-    boilerConfig: 772,
-    chTimeToTemp: 0,
-    powerCons: 8796,
-    rssi: 26,
-    current: -10,
-    voltage: 3989,
-    resets: 11,
-    memoryAllocation: 2800,
-    chStatus: 13,
-    chControl_mode: 0,
-    chMode: 1,
-    chModeDuration: 0,
-    chModeTemp: 20.0,
-    dhwStatus: 5,
-    dhwMode: 1,
-    weatherTemp: 4.4,
-    weatherStatus: 1,
-    vacationDuration: 0,
-    extendDuration: 0,
-    fireplaceDuration: 10800
 }
 </pre>
-
-            <!-- Todo: Update in response to code changes. -->
 
             <h3>
                 <a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>
@@ -148,11 +122,15 @@ Java(TM) SE Runtime Environment (build 1.8.0_60-b27)
 Java HotSpot(TM) 64-Bit Server VM (build 25.60-b23, mixed mode)
 </pre>
 
+
+            <mark>Todo: Describe local and remote operation</mark>
             <p>
-                Download
-                <a href="https://github.com/kozmoz/atag-one-api/releases/download/v1-1-0/atag-one.jar" download="atag-one.jar">atag-one.jar</a>,
-                open a terminal and start <code>atag-one</code> with the user credentials specified (email address and password):
+                Download <code>atag-one.jar</code> from the
+                <a href="https://github.com/kozmoz/atag-one-api/releases/">GitHub Releases</a> page,
+                open a terminal, navigate to the downloads location and start <code>atag-one.jar</code>:
             </p>
+
+
 
 <pre>
 $ cd ~/Downloads/
