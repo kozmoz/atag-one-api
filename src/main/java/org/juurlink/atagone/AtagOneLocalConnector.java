@@ -313,14 +313,33 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 * @return Info about the thermostat found, or null when noting found
 	 */
 	@Nullable
-	protected AtagOneInfo searchOnes() throws IOException, InterruptedException {
+	protected AtagOneInfo searchOnes() throws IOException {
 
 		final String messageTag = "ONE ";
-		final UdpMessage udpMessage = NetworkUtils.getUdpBroadcastMessage(UDP_BROADCAST_PORT, MAX_LISTEN_TIMEOUT_SECONDS, messageTag);
 
-		if (udpMessage != null && udpMessage.getMessage().startsWith(messageTag)) {
+		UdpMessage udpMessage = null;
+		int maxRetriesAfterTechnicalError = 3;
+		while (maxRetriesAfterTechnicalError > 0) {
+			try {
+				udpMessage = NetworkUtils.getUdpBroadcastMessage(UDP_BROADCAST_PORT, MAX_LISTEN_TIMEOUT_SECONDS, messageTag);
+				// No technical errors occurred, stop listening.
+				break;
+
+			} catch (IOException e) {
+				maxRetriesAfterTechnicalError--;
+				if (maxRetriesAfterTechnicalError <= 0) {
+					throw e;
+				}
+			}
+		}
+
+		if (udpMessage != null) {
+			// We received a message that matches our tag.
 			String deviceId = udpMessage.getMessage().split(" ")[1];
-			return new AtagOneInfo(udpMessage.getDeviceAddress(), deviceId);
+			return AtagOneInfo.builder()
+				.deviceAddress(udpMessage.getDeviceAddress())
+				.deviceId(deviceId)
+				.build();
 		}
 
 		// No thermostat found.

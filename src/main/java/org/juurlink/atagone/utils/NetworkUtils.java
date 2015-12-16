@@ -89,7 +89,7 @@ public class NetworkUtils {
 	 * @throws IOException            in case of connection error
 	 * @throws AtagPageErrorException in case the page contains an error message
 	 */
-	public static String getPageContent(@NonNull String url) throws IOException, AtagPageErrorException {
+	public static String getPageContent(@NonNull String url) throws IOException {
 
 		// HTTP(S) Connect.
 		HttpURLConnection httpConnection = createHttpConnection(url);
@@ -106,7 +106,7 @@ public class NetworkUtils {
 	 * @throws IOException            in case of connection error
 	 * @throws AtagPageErrorException in case the page contains an error message
 	 */
-	public static String getPostPageContent(@NonNull String url, Map<String, String> parameters) throws IOException, AtagPageErrorException {
+	public static String getPostPageContent(@NonNull String url, Map<String, String> parameters) throws IOException {
 
 		byte[] postData = createPostBody(parameters);
 
@@ -138,7 +138,7 @@ public class NetworkUtils {
 	 * @throws AtagPageErrorException in case the page contains an error message
 	 */
 	@Nonnull
-	public static String getPostPageContent(@NonNull String url, @NonNull String json) throws IOException, AtagPageErrorException {
+	public static String getPostPageContent(@NonNull String url, @NonNull String json) throws IOException {
 
 		byte[] postData = json.getBytes(Charset.forName("UTF-8"));
 
@@ -308,10 +308,10 @@ public class NetworkUtils {
 	 * @param maxTimeoutSeconds Max number of seconds to wait for message
 	 * @param messageTag        Message identification tag
 	 * @return Message found or null in case no message
+	 * @throws IOException in case of technical error
 	 */
 	@Nullable
-	public static UdpMessage getUdpBroadcastMessage(final int port, final int maxTimeoutSeconds, final String messageTag)
-		throws IOException, InterruptedException {
+	public static UdpMessage getUdpBroadcastMessage(final int port, final int maxTimeoutSeconds, final String messageTag) throws IOException {
 
 		if (maxTimeoutSeconds < 0) {
 			throw new IllegalArgumentException("'maxTimeoutSeconds' value cannot be smaller than zero.");
@@ -361,7 +361,7 @@ public class NetworkUtils {
 	 */
 	@Nonnull
 	protected static String toPageResponse(@NonNull final HttpURLConnection httpConnection)
-		throws AtagPageErrorException, IOException {
+		throws IOException {
 		InputStream inputStreamStd = null;
 		InputStream inputStreamErr = null;
 		try {
