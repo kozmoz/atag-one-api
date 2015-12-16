@@ -71,7 +71,7 @@ public class NetworkUtils {
 	/**
 	 * Connection timeout in milliseconds.
 	 */
-	private static final int MAX_CONNECTION_TIMEOUT_MS = 30000;
+	private static final int MAX_CONNECTION_TIMEOUT_MS = 60000;
 	/**
 	 * Time between retries in milliseconds.
 	 */
