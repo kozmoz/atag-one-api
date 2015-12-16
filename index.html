@@ -77,10 +77,9 @@
     chWaterPressure: 1.6,
     chReturnTemperature: 40.3,
     targetTemperature: 20.0,
-    deviceErrors: "",
-    boilerErrors: "",
     dhwWaterTemp: 46.8,
     dhwWaterPres: 0.0,
+    ...
 }
 </pre>
 
@@ -123,34 +122,39 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.60-b23, mixed mode)
 </pre>
 
 
-            <mark>Todo: Describe local and remote operation</mark>
             <p>
-                Download <code>atag-one.jar</code> from the
-                <a href="https://github.com/kozmoz/atag-one-api/releases/">GitHub Releases</a> page,
-                open a terminal, navigate to the downloads location and start <code>atag-one.jar</code>:
+                To show diagnostic data of the thermostat that can be found in the local network:
             </p>
 
+            <ol>
+                <li>Download <code>atag-one.jar</code> from the <a href="https://github.com/kozmoz/atag-one-api/releases/">GitHub Releases</a> page
+                </li>
+                <li>Open a terminal</li>
+                <li>navigate to the downloads folder</li>
+                <li>Start <code>atag-one.jar</code> without arguments</li>
+            </ol>
 
 
 <pre>
 $ cd ~/Downloads/
-$ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd
+$ java -jar atag-one.jar
 {
-    "deviceId": "6808-1401-3109_15-30-001-123",
-    "deviceAlias": "CV-ketel",
-    "latestReportTime": "<span class="bh-now">2015-11-19 13:46:44</span>",
-    "connectedTo": "BCU",
-    "burningHours": 41.4,
-    "boilerHeatingFor": "-",
-    "flameStatus": false,
-    "roomTemperature": 18.1,
-    "outsideTemperature": 13,
-    "dhwSetpoint": 60,
-    "dhwWaterTemperature": 32.3,
-    "chSetpoint": 1.4,
-    "chWaterTemperature": 18.1,
-    "chWaterPressure": 1.5,
-    "chReturnTemperature": 18.1
+    deviceId: "6808-1401-3109_15-30-001-123",
+    latestReportTime: "<span class="bh-now">2015-12-15 13:46:44</span>",
+    deviceIP: "10.0.100.50",
+    burningHours: 283.91,
+    roomTemperature: 19.9,
+    outsideTemperature: 4.4,
+    dhwSetpoint: 60.0,
+    dhwWaterTemperature: 46.8,
+    chSetpoint: 42.3,
+    chWaterTemperature: 46.6,
+    chWaterPressure: 1.6,
+    chReturnTemperature: 40.3,
+    targetTemperature: 20.0,
+    dhwWaterTemp: 46.8,
+    dhwWaterPres: 0.0,
+    ...
 }
 </pre>
 
@@ -160,14 +164,50 @@ $ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd
             </h3>
 
             <p>
-                To set the room temperature to 20.5 degrees celsius. <br/>
-                The response of the call is 18.6, which is the current room temperature.
+                <code>atag-one.jar</code> has two modes of operation; i.e. <strong>Local</strong> and <strong>Remote</strong>.
+            </p>
+            <p>
+                When in local mode, it finds the thermostat in the local network automatically and connects directly to it. When in remote mode, it
+                connects to the ATAG One portal.
+            </p>
+
+            <h4>Local Mode</h4>
+
+            <p>
+                Connect to the ATAG One thermostat on your local network and get diagnostic data:
             </p>
 
 <pre>
-$ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd \
-    --set 20.5
+$ java -jar atag-one.jar
+</pre>
+
+            <p>
+                Set the target room temperature to 20.5 degrees celsius:<br/>
+                In case of success the response shows the current room temperature, e.g. 18.6.
+            </p>
+
+<pre>
+$ java -jar atag-one.jar --set 20.5
 18.6
+</pre>
+
+            <h4>Remote Mode</h4>
+
+            <p>
+                Get diagnostic data via the ATAG One internet portal, using the portal credentials:
+            </p>
+
+<pre>
+$ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd
+</pre>
+
+            <p>
+                Set the target room temperature to 20.5 degrees celsius via the ATAG One internet portal: <br/>
+                In case of success the response shows the current room temperature, e.g. 18.6.
+            </p>
+
+<pre>
+$ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd --set 20.5
 </pre>
 
             <h3>
