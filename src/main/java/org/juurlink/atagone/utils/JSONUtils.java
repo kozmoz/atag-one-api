@@ -40,8 +40,8 @@ public class JSONUtils {
 				result.append(",");
 			}
 			first = false;
-			result.append("\n    ");
-			result.append(entry.getKey()).append(": ");
+			result.append("\n    \"");
+			result.append(entry.getKey()).append("\": ");
 			if (entry.getValue() instanceof String) {
 				result.append("\"").append(entry.getValue()).append("\"");
 			} else {

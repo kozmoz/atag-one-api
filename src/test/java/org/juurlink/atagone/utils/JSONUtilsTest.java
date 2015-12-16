@@ -24,13 +24,13 @@ public class JSONUtilsTest {
 
 		String actual = JSONUtils.toJSON(testData);
 		String expected = "{\n" +
-			"    deviceId: \"6808-1401-3109_15-30-001-544\",\n" +
-			"    latestReportTime: \"2015-11-20 01:16:45\",\n" +
-			"    roomTemperature: 20.4,\n" +
-			"    dhwSetpoint: 60,\n" +
-			"    chWaterTemperature: 55.5,\n" +
-			"    flameStatus: false,\n" +
-			"    boilerHeatingFor: null\n" +
+			"    \"deviceId\": \"6808-1401-3109_15-30-001-544\",\n" +
+			"    \"latestReportTime\": \"2015-11-20 01:16:45\",\n" +
+			"    \"roomTemperature\": 20.4,\n" +
+			"    \"dhwSetpoint\": 60,\n" +
+			"    \"chWaterTemperature\": 55.5,\n" +
+			"    \"flameStatus\": false,\n" +
+			"    \"boilerHeatingFor\": null\n" +
 			"}";
 		assertEquals(expected, actual);
 	}
