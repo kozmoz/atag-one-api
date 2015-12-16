@@ -14,12 +14,15 @@ import org.juurlink.atagone.domain.DeviceInfo;
 import org.juurlink.atagone.domain.UdpMessage;
 import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
+import org.juurlink.atagone.exceptions.NotAuthorizedException;
 import org.juurlink.atagone.utils.CalendarUtils;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.NetworkUtils;
 import org.juurlink.atagone.utils.NumberUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
+import lombok.Getter;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.java.Log;
 
@@ -54,11 +57,17 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	private static final int UDP_BROADCAST_PORT = 11000;
 	private static final int SLEEP_BETWEEN_FAILURE_MS = 2000;
 
+	private static final String RESPONSE_ACC_STATUS = "acc_status";
+
+	/**
+	 * Hostname and MAC address of running machine.
+	 */
 	private final DeviceInfo computerInfo;
 
 	/**
-	 * ATAG One Device ID and IP address.
+	 * ATAG One Device ID and IP address. Will have a value when thermostat found.
 	 */
+	@Getter
 	@Nullable
 	private AtagOneInfo selectedDevice;
 
@@ -75,23 +84,41 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	}
 
 	/**
+	 * Construct ATAG One connector with configured thermostat.
+	 *
+	 * @param selectedDevice Do not search for device, but connect to configured thermostat instead
+	 * @throws IOException when error getting local device address
+	 */
+	@SuppressWarnings("unused")
+	public AtagOneLocalConnector(@Nonnull @NonNull AtagOneInfo selectedDevice) throws IOException {
+		this();
+		this.selectedDevice = selectedDevice;
+	}
+
+	/**
 	 * Find the thermostat in the local network and authorize with it.
 	 *
-	 * @return Device ID
+	 * @return Device ID or null when no thermostat found
 	 */
 	@Nonnull
 	@Override
 	@SneakyThrows
 	public String login() throws IOException {
 
-		log.fine("Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
-		selectedDevice = searchOnes();
 		if (selectedDevice == null) {
-			throw new AtagSearchErrorException("Cannot find " + AtagOneApp.THERMOSTAT_NAME + " thermostat in local network.");
-		}
+			log.fine("Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
+			selectedDevice = searchOnes();
+			if (selectedDevice == null) {
+				throw new AtagSearchErrorException("Cannot find " + AtagOneApp.THERMOSTAT_NAME + " thermostat in local network.");
+			}
 
-		// Device found in local network.
-		log.fine(AtagOneApp.THERMOSTAT_NAME + " found in local network: " + selectedDevice);
+			// Device found in local network.
+			log.fine(AtagOneApp.THERMOSTAT_NAME + " found in local network: " + selectedDevice);
+
+		} else {
+			log.fine("Connect to configured " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
+			log.fine("Thermostat address and id: " + selectedDevice);
+		}
 
 		// Start authorization proces with thermostat.
 		authorizeWithThermostat();
@@ -148,10 +175,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
 		// Response:
 		// { "update_reply":{ "seqnr":0,"status":{"device_id":"6808-1401-3109_15-30-001-123","device_status":16385,"connection_status":23,"date_time":503527795},"acc_status":2} }
-		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");
-		if (accStatus == null || accStatus != 2) {
-			throw new IllegalStateException("Setting the temperature was not successful.");
-		}
+		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
+		assertAuthorized(accStatus);
 
 		// Get and return current room temperature.
 		return (BigDecimal) getDiagnostics().get(VALUE_ROOM_TEMPERATURE);
@@ -194,6 +219,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
 		// Sometimes the response is empty, try multiple times.
 		String response = executeRequest(messageUrl, jsonPayload);
+
+		// Test accStatus response.
+		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
+		assertAuthorized(accStatus);
 
 		/*
 		{ "retrieve_reply":{ "seqnr":0,
@@ -389,9 +418,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			// Sometimes the response is empty, try multiple times.
 			String response = executeRequest(pairUrl, jsonPayload);
 
-			accStatus = JSONUtils.getJSONValueByName(response, Integer.class, "acc_status");
+			accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
 			if (accStatus == null) {
-				throw new IllegalStateException("Error during pair request. 'acc_status' is null.");
+				throw new IllegalStateException("Error during pair request. '" + RESPONSE_ACC_STATUS + "' is null.");
 			}
 			// Wait and try again within x seconds.
 			if (accStatus != 2) {
@@ -404,13 +433,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			}
 		}
 
-		if (accStatus == 1) {
-			throw new IllegalStateException("Please grant access to connect to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat. \n" +
-				"This is only a one time action per device that wants to connect.");
-		}
-		if (accStatus == 3) {
-			throw new AccessDeniedException("Access to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat is denied.");
-		}
+		// Test accStatus response.
+		assertAuthorized(accStatus);
 	}
 
 	/**
@@ -452,6 +476,38 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			throw new IllegalStateException("Empty response");
 		}
 		return response;
+	}
+
+	/**
+	 * Test response for authorization errors.
+	 *
+	 * @param accStatus accStatus from response
+	 * @throws NotAuthorizedException When user did not approve authorization request
+	 * @throws AccessDeniedException  When user denied authorization request
+	 */
+	protected void assertAuthorized(@Nullable final Integer accStatus) throws NotAuthorizedException, AccessDeniedException {
+
+		if (accStatus == null) {
+			throw new IllegalStateException("Response '" + RESPONSE_ACC_STATUS + "' is null.");
+		}
+
+		// Access granted.
+		if (accStatus == 2) {
+			return;
+		}
+
+		// User did not approve authorization request.
+		if (accStatus == 1) {
+			throw new NotAuthorizedException("Please grant access to connect to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat. \n" +
+				"This is only a one time action per device that wants to connect.");
+		}
+
+		// User denied authorization request.
+		if (accStatus == 3) {
+			throw new AccessDeniedException("Access to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat is denied.");
+		}
+
+		throw new IllegalStateException("Unknown '" + RESPONSE_ACC_STATUS + "', expecting 1, 2 or 3, but is " + accStatus + ".");
 	}
 
 }
