@@ -1,7 +1,7 @@
 # Change Log
 
-## [1.3.0](https://github.com/kozmoz/atag-one-api/tree/1.3.0) (2015-12-21)
-[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1-2-1...1.3.0)
+## [1.3.0-SNAPSHOT](https://github.com/kozmoz/atag-one-api/tree/1.3.0-SNAPSHOT) (2015-12-21)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1-2-1...1.3.0-SNAPSHOT)
 
 **Implemented enhancements:**
 
@@ -9,7 +9,7 @@
 - Add host-name for direct connection to thermostat [\#2](https://github.com/kozmoz/atag-one-api/issues/2)
 
 ## 1.2.1 (2015-12-16)
-[Full Changelog](https://github.com/kozmoz/atag-onGene-api/compare/v1-2-0...v1-2-1)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1-2-0...v1-2-1)
 
 **Fixed bugs:**
 
