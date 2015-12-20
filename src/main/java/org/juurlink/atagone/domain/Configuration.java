@@ -16,15 +16,46 @@ import lombok.Value;
 @Value
 @Builder
 public class Configuration {
+
+	/**
+	 * Set temperature, when set.
+	 */
 	@Nullable
 	BigDecimal temperature;
+
+	/**
+	 * Email address of Atag Portal account.
+	 */
 	@Nullable
 	private String email;
+
+	/**
+	 * Password of Atag Portal account.
+	 */
 	@Nullable
 	private String password;
+
+	/**
+	 * Debug logging.
+	 */
 	private boolean debug;
+
+	/**
+	 * Output format; CSV or JSON.
+	 */
 	@Nonnull
 	private FORMAT format;
+
+	/**
+	 * Host-name of local thermostat.
+	 */
+	@Nullable
+	private String hostName;
+
+	/**
+	 * Skip request for authorization.
+	 */
+	private boolean skipAuthRequest;
 
 	/**
 	 * When no portal email address given, we presume local operation.

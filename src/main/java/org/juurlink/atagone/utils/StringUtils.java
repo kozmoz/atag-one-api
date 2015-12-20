@@ -25,6 +25,13 @@ public class StringUtils {
 	}
 
 	/**
+	 * Test if given string is not null, empty or only contains white space characters.
+	 */
+	public static boolean isNotBlank(@Nullable final String string) {
+		return !isBlank(string);
+	}
+
+	/**
 	 * Return empty string "" in case of null.
 	 */
 	@Nonnull

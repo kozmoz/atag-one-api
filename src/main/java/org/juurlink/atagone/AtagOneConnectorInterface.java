@@ -40,11 +40,8 @@ public interface AtagOneConnectorInterface {
 
 	/**
 	 * Login to portal or to local thermostat.
-	 *
-	 * @return Device ID
 	 */
-	@Nonnull
-	String login() throws IOException;
+	void login() throws IOException;
 
 	/**
 	 * Get MAP of diagnostic data.

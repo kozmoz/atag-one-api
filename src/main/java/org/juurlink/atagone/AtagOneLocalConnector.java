@@ -2,6 +2,7 @@ package org.juurlink.atagone;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.InetAddress;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,6 +11,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.juurlink.atagone.domain.AtagOneInfo;
+import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.DeviceInfo;
 import org.juurlink.atagone.domain.UdpMessage;
 import org.juurlink.atagone.exceptions.AccessDeniedException;
@@ -74,36 +76,33 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	/**
 	 * Construct ATAG One connector.
 	 *
-	 * @throws IOException when error getting local device address
+	 * @param configuration Configuration for device host-name
+	 * @throws java.net.UnknownHostException when configures host-name is invalid
+	 * @throws IOException                   when error getting local device address
 	 */
-	public AtagOneLocalConnector() throws IOException {
+	@SuppressWarnings("unused")
+	public AtagOneLocalConnector(@Nonnull @NonNull Configuration configuration) throws IOException {
 		log.fine("Instantiate " + AtagOneApp.THERMOSTAT_NAME + " local connector");
 
-		// Computer mac address (used for authorization with thermostat)
+		// Host-name for thermostat configured?
+		final String hostName = configuration.getHostName();
+		if (StringUtils.isNotBlank(hostName)) {
+
+			// Host-name set, skip discovery during login process.
+			final InetAddress deviceAddress = InetAddress.getByName(hostName);
+			selectedDevice = AtagOneInfo.builder().deviceAddress(deviceAddress).build();
+		}
+
+		// Local computer MAC address (used for communication with thermostat).
 		computerInfo = NetworkUtils.getDeviceInfo();
 	}
 
 	/**
-	 * Construct ATAG One connector with configured thermostat.
-	 *
-	 * @param selectedDevice Do not search for device, but connect to configured thermostat instead
-	 * @throws IOException when error getting local device address
+	 * Find the thermostat in the local network and get authorization to connect to it.
 	 */
-	@SuppressWarnings("unused")
-	public AtagOneLocalConnector(@Nonnull @NonNull AtagOneInfo selectedDevice) throws IOException {
-		this();
-		this.selectedDevice = selectedDevice;
-	}
-
-	/**
-	 * Find the thermostat in the local network and authorize with it.
-	 *
-	 * @return Device ID or null when no thermostat found
-	 */
-	@Nonnull
 	@Override
 	@SneakyThrows
-	public String login() throws IOException {
+	public void login() throws IOException {
 
 		if (selectedDevice == null) {
 			log.fine("Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
@@ -117,13 +116,11 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
 		} else {
 			log.fine("Connect to configured " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
-			log.fine("Thermostat address and id: " + selectedDevice);
+			log.fine("Thermostat address is: " + selectedDevice.getDeviceAddress().getHostAddress());
 		}
 
 		// Start authorization proces with thermostat.
 		authorizeWithThermostat();
-
-		return selectedDevice.getDeviceId();
 	}
 
 	/**
@@ -279,7 +276,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		 */
 
 		Map<String, Object> values = new LinkedHashMap<String, Object>();
-		values.put(VALUE_DEVICE_ID, selectedDevice.getDeviceId());
+		if (selectedDevice.getDeviceId() != null) {
+			// When discovery is skipped, the device id is unknown.
+			values.put(VALUE_DEVICE_ID, selectedDevice.getDeviceId());
+		}
 		values.put(VALUE_DEVICE_IP, selectedDevice.getDeviceAddress().getHostAddress());
 		// VALUE_DEVICE_ALIAS; Locally unknown
 		final Integer reportTime = JSONUtils.getJSONValueByName(response, Integer.class, "report_time");

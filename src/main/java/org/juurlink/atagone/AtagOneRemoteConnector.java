@@ -9,6 +9,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.PortalCredentials;
 import org.juurlink.atagone.utils.HTMLUtils;
 import org.juurlink.atagone.utils.JSONUtils;
@@ -44,20 +45,26 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 	/**
 	 * Construct ATAG One connector to remote device.
 	 */
-	public AtagOneRemoteConnector(@Nonnull @NonNull final PortalCredentials portalCredentials) {
+	public AtagOneRemoteConnector(@Nonnull @NonNull final Configuration configuration) {
+
 		log.fine("Instantiate " + AtagOneApp.THERMOSTAT_NAME + " remote connector");
-		this.portalCredentials = portalCredentials;
+
+		portalCredentials = PortalCredentials.builder()
+			.emailAddress(configuration.getEmail())
+			.password(configuration.getPassword())
+			.build();
 	}
 
 	/**
 	 * Login ATAG ONE portal and select first Device found.
-	 *
-	 * @return Device ID
 	 */
-	@Nonnull
-	public String login() throws IOException {
+	public void login() throws IOException {
 
 		log.fine("Login at " + THERMOSTAT_NAME + " portal.");
+		if (StringUtils.isBlank(portalCredentials.getEmailAddress()) || StringUtils.isBlank(portalCredentials.getPassword())) {
+			throw new IllegalStateException("Both 'emailAddress' and 'password' are required.");
+		}
+
 		log.fine("POST authentication data: " + URL_LOGIN);
 
 		// We need a session (cookie) and a verification token, get them first.
@@ -75,8 +82,6 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 		if (StringUtils.isBlank(selectedDeviceId)) {
 			throw new IllegalStateException("No Device ID found, cannot continue.");
 		}
-
-		return selectedDeviceId;
 	}
 
 	/**

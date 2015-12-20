@@ -1,8 +1,11 @@
 package org.juurlink.atagone;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
@@ -23,10 +26,11 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.FORMAT;
-import org.juurlink.atagone.domain.PortalCredentials;
 import org.juurlink.atagone.domain.Version;
+import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
+import org.juurlink.atagone.exceptions.NotAuthorizedException;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
@@ -53,6 +57,7 @@ public class AtagOneApp {
 	private static final String OPTION_OUTPUT = "output";
 	private static final String OPTION_SET = "set";
 	private static final String OPTION_VERSION = "version";
+	private static final String OPTION_SKIP_AUTH_REQUEST = "skip-auth-request";
 
 	private static final String PROPERTY_NAME_MAVEN_APPLICATION_VERSION = "applicationVersion";
 	private static final String PROPERTY_NAME_MAVEN_BUILD_DATE = "buildDate";
@@ -72,17 +77,8 @@ public class AtagOneApp {
 		}
 
 		try {
-			// Initialize ATAG ONE connector; Either local or remote.
-			AtagOneConnectorInterface atagOneConnector;
-			if (configuration.isLocal()) {
-				atagOneConnector = new AtagOneLocalConnector();
-			} else {
-				PortalCredentials portalCredentials = PortalCredentials.builder()
-					.emailAddress(configuration.getEmail())
-					.password(configuration.getPassword())
-					.build();
-				atagOneConnector = new AtagOneRemoteConnector(portalCredentials);
-			}
+			// Initialize ATAG ONE connector; Either Local or Remote.
+			AtagOneConnectorInterface atagOneConnector = new AtagOneConnectorFactory().getInstance(configuration);
 
 			// Login; Either local or remote.
 			atagOneConnector.login();
@@ -132,28 +128,42 @@ public class AtagOneApp {
 			// Print human readable error message.
 			System.err.println("State Error: " + e.getMessage());
 			System.err.println();
-
 			System.exit(1);
 
 		} catch (IllegalArgumentException e) {
 			// Print human readable error message.
 			System.err.println("Illegal Argument: " + e.getMessage());
 			System.err.println();
-
 			System.exit(1);
 
 		} catch (AtagPageErrorException e) {
 			// Print human readable error message.
 			System.err.println(e.getMessage());
 			System.err.println();
-
 			System.exit(1);
 
 		} catch (AtagSearchErrorException e) {
 			// Print human readable error message.
 			System.err.println(e.getMessage());
 			System.err.println();
+			System.exit(1);
 
+		} catch (NotAuthorizedException e) {
+			// Print human readable error message.
+			System.err.println(e.getMessage());
+			System.err.println();
+			System.exit(1);
+
+		} catch (AccessDeniedException e) {
+			// Print human readable error message.
+			System.err.println(e.getMessage());
+			System.err.println();
+			System.exit(1);
+
+		} catch (UnknownHostException e) {
+			// Unknown host given.
+			System.err.println("Cannot resolve host-name '" + configuration.getHostName() + "'.");
+			System.err.println();
 			System.exit(1);
 
 		} catch (IOException e) {
@@ -161,7 +171,6 @@ public class AtagOneApp {
 			System.err.println("Input Output Error: " + e.toString());
 			e.printStackTrace(System.err);
 			System.err.println();
-
 			System.exit(1);
 
 		} catch (Throwable e) {
@@ -172,7 +181,6 @@ public class AtagOneApp {
 				System.err.println();
 			}
 			e.printStackTrace();
-
 			System.exit(1);
 		}
 	}
@@ -208,10 +216,12 @@ public class AtagOneApp {
 		options.addOption("s", OPTION_SET, true,
 			"Set temperature in degrees celsius between " + TEMPERATURE_MIN + " and " + TEMPERATURE_MAX + " inclusive.");
 		options.addOption("v", OPTION_VERSION, false, "Version info and build timestamp.");
+		options.addOption(null, OPTION_SKIP_AUTH_REQUEST, false, "Skip the authorization request. \nWhen authorization is already performed, " +
+			"a new auth request is not entirely necessarily. Skipping this request in that case could save some seconds.");
 
 		try {
 			CommandLineParser parser = new DefaultParser();
-			CommandLine cmd = parser.parse(options, args);
+			CommandLine cmd = parser.parse(options, args, true);
 
 			final String email = cmd.getOptionValue(OPTION_EMAIL);
 			final String password = cmd.getOptionValue(OPTION_PASSWORD);
@@ -220,6 +230,9 @@ public class AtagOneApp {
 			final boolean hasTemperature = cmd.hasOption(OPTION_SET);
 			final String temperatureString = cmd.getOptionValue(OPTION_SET);
 			final boolean hasVersion = cmd.hasOption(OPTION_VERSION);
+			final boolean skipAuthRequest = cmd.hasOption(OPTION_VERSION);
+			// Remaining arguments
+			final String hostName = cmd.getArgs() != null && cmd.getArgs().length > 0 ? cmd.getArgs()[0] : null;
 
 			@Nullable
 			BigDecimal temperature = null;
@@ -286,6 +299,8 @@ public class AtagOneApp {
 				.password(password)
 				.debug(debug)
 				.format(outputFormat)
+				.hostName(hostName)
+				.skipAuthRequest(skipAuthRequest)
 				.build();
 
 		} catch (ParseException e) {
@@ -343,9 +358,14 @@ public class AtagOneApp {
 		HelpFormatter formatter = new HelpFormatter();
 		final String headerMessage = "Prints by default diagnostic info about the " + THERMOSTAT_NAME + " thermostat in the local network.\n\n" +
 			"Optionally it can set the setpoint temperature. " +
-			"It can connect to both the " + THERMOSTAT_NAME + " portal or directly to the thermostat in the local network.\n\n";
-		formatter.printHelp(EXECUTABLE_NAME,
-			headerMessage, options, "", true);
+			"It can connect to both the " + THERMOSTAT_NAME + " portal or directly to the thermostat on the local network.\n\n";
+
+		final StringWriter stringWriter = new StringWriter();
+		formatter.printHelp(new PrintWriter(stringWriter), 120, EXECUTABLE_NAME, headerMessage, options, 1, 3, null, true);
+
+		// Hack to add "[hostname]" after last option in usage line.
+		String result = stringWriter.toString().replace("[-v]", "[-v] [host-name]");
+		System.out.println(result);
 	}
 
 	/**

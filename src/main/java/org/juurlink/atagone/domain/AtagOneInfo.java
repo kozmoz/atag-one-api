@@ -3,6 +3,7 @@ package org.juurlink.atagone.domain;
 import java.net.InetAddress;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import lombok.Builder;
 import lombok.Value;
@@ -15,6 +16,9 @@ import lombok.Value;
 public class AtagOneInfo {
 	@Nonnull
 	private InetAddress deviceAddress;
-	@Nonnull
+	/**
+	 * Not required for local communication.
+	 */
+	@Nullable
 	private String deviceId;
 }
