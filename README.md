@@ -60,7 +60,9 @@ The software is provided "as is", without warranty of any kind.
 
 ## Website
 
-ATAG One API project website http://atag.one
+ATAG One API project **website** - http://atag.one
+
+ATAG One API project **wiki** - https://github.com/kozmoz/atag-one-api/wiki
  
-ATAG One manufacturer product website https://www.atag-one.com  
+ATAG One manufacturer **product** website - https://www.atag-one.com  
 
