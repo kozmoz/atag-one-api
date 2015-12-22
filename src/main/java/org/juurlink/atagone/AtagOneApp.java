@@ -230,7 +230,7 @@ public class AtagOneApp {
 			final boolean hasTemperature = cmd.hasOption(OPTION_SET);
 			final String temperatureString = cmd.getOptionValue(OPTION_SET);
 			final boolean hasVersion = cmd.hasOption(OPTION_VERSION);
-			final boolean skipAuthRequest = cmd.hasOption(OPTION_VERSION);
+			final boolean skipAuthRequest = cmd.hasOption(OPTION_SKIP_AUTH_REQUEST);
 			// Remaining arguments
 			final String hostName = cmd.getArgs() != null && cmd.getArgs().length > 0 ? cmd.getArgs()[0] : null;
 

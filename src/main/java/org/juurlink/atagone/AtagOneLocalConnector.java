@@ -74,6 +74,11 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	private AtagOneInfo selectedDevice;
 
 	/**
+	 * When true, then skip the auth request during login.
+	 */
+	private boolean skipAuthRequest;
+
+	/**
 	 * Construct ATAG One connector.
 	 *
 	 * @throws IOException when error getting local device address
@@ -94,6 +99,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	@SuppressWarnings("unused")
 	public AtagOneLocalConnector(@Nonnull @NonNull Configuration configuration) throws IOException {
 		log.fine("Instantiate " + AtagOneApp.THERMOSTAT_NAME + " local connector");
+
+		// Skip auth request?
+		skipAuthRequest = configuration.isSkipAuthRequest();
 
 		// Host-name for thermostat configured?
 		final String hostName = configuration.getHostName();
@@ -130,8 +138,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			log.fine("Thermostat address is: " + selectedDevice.getDeviceAddress().getHostAddress());
 		}
 
-		// Start authorization proces with thermostat.
-		authorizeWithThermostat();
+		if (!skipAuthRequest) {
+			// Start authorization proces with thermostat.
+			authorizeWithThermostat();
+		}
 	}
 
 	/**
