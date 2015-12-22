@@ -2,7 +2,6 @@ package org.juurlink.atagone.domain;
 
 import java.math.BigDecimal;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.juurlink.atagone.utils.StringUtils;
@@ -43,7 +42,7 @@ public class Configuration {
 	/**
 	 * Output format; CSV or JSON.
 	 */
-	@Nonnull
+	@Nullable
 	private FORMAT format;
 
 	/**

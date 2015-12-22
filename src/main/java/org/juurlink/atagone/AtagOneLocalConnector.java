@@ -76,6 +76,17 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	/**
 	 * Construct ATAG One connector.
 	 *
+	 * @throws IOException when error getting local device address
+	 */
+	@SuppressWarnings("unused")
+	public AtagOneLocalConnector() throws IOException {
+		// With empty configuration.
+		this(Configuration.builder().build());
+	}
+
+	/**
+	 * Construct ATAG One connector.
+	 *
 	 * @param configuration Configuration for device host-name
 	 * @throws java.net.UnknownHostException when configures host-name is invalid
 	 * @throws IOException                   when error getting local device address
