@@ -59,4 +59,9 @@ public interface AtagOneConnectorInterface {
 	 */
 	@Nullable
 	BigDecimal setTemperature(BigDecimal temperature) throws IOException;
+
+	/**
+	 * Get all info from the thermostat and dump the response.
+	 */
+	String dump() throws IOException;
 }

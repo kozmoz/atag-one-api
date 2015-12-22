@@ -47,11 +47,11 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	private static final int SLEEP_BETWEEN_AUTH_REQUESTS_MS = 5000;
 
 	private static final int MESSAGE_INFO_CONTROL = 1;
+	private static final int MESSAGE_INFO_SCHEDULES = 2;
+	private static final int MESSAGE_INFO_CONFIGURATION = 4;
 	private static final int MESSAGE_INFO_REPORT = 8;
-	//private static final int MESSAGE_INFO_SCHEDULES = 2;
-	//private static final int MESSAGE_INFO_CONFIGURATION = 4;
-	//private static final int MESSAGE_INFO_STATUS = 16;
-	//private static final int MESSAGE_INFO_WIFISCAN = 32;
+	private static final int MESSAGE_INFO_STATUS = 16;
+	private static final int MESSAGE_INFO_WIFISCAN = 32;
 
 	/**
 	 * UDP port the thermostat sends its messages to.
@@ -139,8 +139,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		}
 
 		if (!skipAuthRequest) {
-			// Start authorization proces with thermostat.
-			authorizeWithThermostat();
+			// Start authorization proces.
+			requestAuthorizationFromThermostat();
+		} else {
+			log.fine("Skip authorization process as requested.");
 		}
 	}
 
@@ -358,6 +360,50 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	}
 
 	/**
+	 * Get all info from the thermostat and dump the response.
+	 *
+	 * @return String  Raw response from thermostat
+	 * @throws IOException              in case of connection error
+	 * @throws IllegalArgumentException when no device selected
+	 */
+	@Nonnull
+	@Override
+	public String dump() throws IOException, IllegalArgumentException {
+
+		if (selectedDevice == null) {
+			throw new IllegalArgumentException("No device selected, cannot get diagnostics.");
+		}
+
+		if (computerInfo == null) {
+			throw new IllegalArgumentException("Cannot determine MAC address of computer, cannot get dump.");
+		}
+
+		final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":10000/retrieve";
+		log.fine("POST retrieve: URL=" + messageUrl);
+
+		// Get computer MAC address.
+		final String macAddress = computerInfo.getMac();
+
+		final int info = MESSAGE_INFO_CONTROL + MESSAGE_INFO_SCHEDULES + MESSAGE_INFO_CONFIGURATION + MESSAGE_INFO_REPORT + MESSAGE_INFO_STATUS +
+			MESSAGE_INFO_WIFISCAN;
+		final String jsonPayload = "{\"retrieve_message\":{" +
+			"\"seqnr\":0," +
+			"\"account_auth\":{" +
+			"\"user_account\":\"\"," +
+			"\"mac_address\":\"" + macAddress + "\"}," +
+			"\"info\":" + info + "}}\n";
+
+		// Sometimes the response is empty, try multiple times.
+		String response = executeRequest(messageUrl, jsonPayload);
+
+		// Test accStatus response.
+		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
+		assertAuthorized(accStatus);
+
+		return response;
+	}
+
+	/**
 	 * Search for thermostat in the local network.
 	 *
 	 * @return Info about the thermostat found, or null when noting found
@@ -397,13 +443,13 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	}
 
 	/**
-	 * Start authorization proces with thermostat.
+	 * Start authorization proces; request permission.
 	 */
 	@SneakyThrows(InterruptedException.class)
-	protected void authorizeWithThermostat() throws IOException {
+	protected void requestAuthorizationFromThermostat() throws IOException {
 
 		if (selectedDevice == null) {
-			throw new IllegalArgumentException("No device selected, cannot authorize with thermostat.");
+			throw new IllegalArgumentException("No device selected, cannot request authorization.");
 		}
 
 		if (computerInfo == null) {
@@ -422,7 +468,6 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		String macAddress = computerInfo.getMac();
 		String deviceName = shortName + " " + AtagOneApp.EXECUTABLE_NAME + " API";
 
-		// HTTP(S) Connect.
 		String jsonPayload = "{\"pair_message\":{\"seqnr\":0,\"accounts\":" +
 			"{\"entries\":[{" +
 			"\"user_account\":\"\"," +
@@ -445,9 +490,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			}
 			// Wait and try again within x seconds.
 			if (accStatus != 2) {
-				System.out.println("Access not yet granted. Please press the Ok button on the '" + deviceName + "' to grant access. \n" +
-					"By pressing the Ok button you prove that you have physical access to the thermostat. \n" +
-					"This is only an one time action per device that wants to connect.");
+				System.out.println("Access not yet granted. Please press the Yes button on the '" + deviceName + "' to grant access. \n" +
+					"By pressing the Yes button you prove that you have physical access to the thermostat. \n" +
+					"This is only an one time action per device.");
 				Thread.sleep(SLEEP_BETWEEN_AUTH_REQUESTS_MS);
 			} else {
 				break;

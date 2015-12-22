@@ -183,6 +183,11 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 		throw new IllegalStateException("Cannot read current room temperature.");
 	}
 
+	@Override
+	public String dump() throws IOException {
+		throw new IllegalStateException("Dump not available in remote operation.");
+	}
+
 	/**
 	 * Open device home page and return requests verification token.          ;
 	 *

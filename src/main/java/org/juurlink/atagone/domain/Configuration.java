@@ -57,6 +57,11 @@ public class Configuration {
 	private boolean skipAuthRequest;
 
 	/**
+	 * When true, dump the complete response from the thermostat.
+	 */
+	private boolean dump;
+
+	/**
 	 * When no portal email address given, we presume local operation.
 	 */
 	public boolean isLocal() {
