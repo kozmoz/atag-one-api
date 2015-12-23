@@ -183,11 +183,6 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			"\"account_auth\":{" +
 			"\"user_account\":\"\"," +
 			"\"mac_address\":\"" + macAddress + "\"}," +
-			"\"device\":null," +
-			"\"status\":null," +
-			"\"report\":null," +
-			"\"configuration\":null," +
-			"\"schedules\":null," +
 			"\"control\":{" +
 			"\"ch_mode_temp\":" + roundedTemperature +
 			"}}}\n";
@@ -195,8 +190,11 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
 		// Response:
 		// { "update_reply":{ "seqnr":0,"status":{"device_id":"6808-1401-3109_15-30-001-123","device_status":16385,"connection_status":23,"date_time":503527795},"acc_status":2} }
-		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
+		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, AtagOneConnectorInterface.VALUE_DEVICE_ID);
 		assertAuthorized(accStatus);
+
+		// Update Device ID?
+		updateSelectedDevice(response);
 
 		// Get and return current room temperature.
 		return (BigDecimal) getDiagnostics().get(VALUE_ROOM_TEMPERATURE);
@@ -299,11 +297,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		 */
 
 		Map<String, Object> values = new LinkedHashMap<String, Object>();
-		if (selectedDevice.getDeviceId() != null) {
-			// When discovery is skipped, the device id is unknown.
-			values.put(VALUE_DEVICE_ID, selectedDevice.getDeviceId());
-		}
+
 		values.put(VALUE_DEVICE_IP, selectedDevice.getDeviceAddress().getHostAddress());
+		values.put(VALUE_DEVICE_ID, JSONUtils.getJSONValueByName(response, String.class, "device_id"));
 		// VALUE_DEVICE_ALIAS; Locally unknown
 		final Integer reportTime = JSONUtils.getJSONValueByName(response, Integer.class, "report_time");
 
@@ -356,6 +352,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
 		// Todo: get "flameStatus" from chStatus / chMode?
 
+		// Update Device ID?
+		updateSelectedDevice(response);
+
 		return values;
 	}
 
@@ -399,6 +398,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		// Test accStatus response.
 		final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
 		assertAuthorized(accStatus);
+
+		// Update Device ID?
+		updateSelectedDevice(response);
 
 		return response;
 	}
@@ -574,6 +576,23 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		}
 
 		throw new IllegalStateException("Unknown '" + RESPONSE_ACC_STATUS + "', expecting 1, 2 or 3, but is " + accStatus + ".");
+	}
+
+	/**
+	 * Update selected device when device id is empty.
+	 *
+	 * @param response RAW REST response
+	 */
+	protected void updateSelectedDevice(final String response) {
+		if (selectedDevice != null && StringUtils.isBlank(selectedDevice.getDeviceId())) {
+			String deviceId = JSONUtils.getJSONValueByName(response, String.class, "device_id");
+			selectedDevice = AtagOneInfo.builder()
+				.deviceAddress(selectedDevice.getDeviceAddress())
+				.deviceId(deviceId)
+				.build();
+
+			log.fine("Updated DeviceID because it was empty: " + deviceId);
+		}
 	}
 
 }
