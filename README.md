@@ -36,9 +36,13 @@ Connect to the ATAG One thermostat on your local network and get diagnostic data
 
     $ java -jar atag-one.jar
 
-Set the target room temperature to 20.5 degrees celsius (on local network):
+Set the target room temperature to 20.5 degrees celsius:
 
     $ java -jar atag-one.jar --set 20.5
+
+Connect to thermostat at IP 10.0.1.12, skip authorization proces and set target room temperature to 20.5 degrees celsius:
+
+    $ java -jar atag-one.jar --set 20.5 --skip-auth-request 10.0.1.12
 
 ### Remote Mode
 
