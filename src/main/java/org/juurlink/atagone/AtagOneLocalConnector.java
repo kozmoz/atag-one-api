@@ -57,6 +57,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 * UDP port the thermostat sends its messages to.
 	 */
 	private static final int UDP_BROADCAST_PORT = 11000;
+	/**
+	 * Client port the thermostat listens on.
+	 */
+	private static final int HTTP_CLIENT_PORT = 10000;
 	private static final int SLEEP_BETWEEN_FAILURE_MS = 2000;
 
 	private static final String RESPONSE_ACC_STATUS = "acc_status";
@@ -172,7 +176,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 					" (inclusive) and " + AtagOneApp.TEMPERATURE_MAX + " (inclusive)");
 		}
 
-		final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":10000/retrieve";
+		final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/update";
 		log.fine("POST retrieve: URL=" + messageUrl);
 
 		// Get computer MAC address.
@@ -220,7 +224,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			throw new IllegalArgumentException("Cannot determine MAC address of computer, cannot get diagnostics.");
 		}
 
-		final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":10000/retrieve";
+		final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/retrieve";
 		log.fine("POST retrieve: URL=" + messageUrl);
 
 		// Get computer MAC address.
@@ -377,7 +381,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			throw new IllegalArgumentException("Cannot determine MAC address of computer, cannot get dump.");
 		}
 
-		final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":10000/retrieve";
+		final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/retrieve";
 		log.fine("POST retrieve: URL=" + messageUrl);
 
 		// Get computer MAC address.
@@ -458,7 +462,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 			throw new IllegalArgumentException("Cannot determine MAC address of computer, authorization process cancelled.");
 		}
 
-		final String pairUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":10000/pair_message";
+		final String pairUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/pair_message";
 		log.fine("POST pair_message: URL=" + pairUrl);
 
 		// Get the local (short) hostname.
