@@ -58,6 +58,7 @@ public class AtagOneApp {
 	private static final String OPTION_SET = "set";
 	private static final String OPTION_VERSION = "version";
 	private static final String OPTION_SKIP_AUTH_REQUEST = "skip-auth-request";
+	private static final String OPTION_DUMP = "dump";
 
 	private static final String PROPERTY_NAME_MAVEN_APPLICATION_VERSION = "applicationVersion";
 	private static final String PROPERTY_NAME_MAVEN_BUILD_DATE = "buildDate";
@@ -89,6 +90,11 @@ public class AtagOneApp {
 				if (currentRoomTemperature != null) {
 					System.out.println(String.format(Locale.US, "%.1f", currentRoomTemperature));
 				}
+
+			} else if (configuration.isDump()) {
+
+				// Dump all.
+				System.out.println(atagOneConnector.dump());
 
 			} else {
 				// Get diagnostics.
@@ -218,6 +224,8 @@ public class AtagOneApp {
 		options.addOption("v", OPTION_VERSION, false, "Version info and build timestamp.");
 		options.addOption(null, OPTION_SKIP_AUTH_REQUEST, false, "Skip the authorization request. \nWhen authorization is already performed, " +
 			"a new auth request is not entirely necessarily. Skipping this request in that case could save some seconds.");
+		options.addOption(null, OPTION_DUMP, false,
+			"Request all info and dump the complete response from the thermostat. Only supported for local thermostats.");
 
 		try {
 			CommandLineParser parser = new DefaultParser();
@@ -231,6 +239,7 @@ public class AtagOneApp {
 			final String temperatureString = cmd.getOptionValue(OPTION_SET);
 			final boolean hasVersion = cmd.hasOption(OPTION_VERSION);
 			final boolean skipAuthRequest = cmd.hasOption(OPTION_SKIP_AUTH_REQUEST);
+			final boolean dump = cmd.hasOption(OPTION_DUMP);
 			// Remaining arguments
 			final String hostName = cmd.getArgs() != null && cmd.getArgs().length > 0 ? cmd.getArgs()[0] : null;
 
@@ -246,8 +255,18 @@ public class AtagOneApp {
 				System.exit(0);
 			}
 
-			if (!StringUtils.isBlank(email) && StringUtils.isBlank(password)) {
+			// When username supplied, password is required.
+			if (StringUtils.isNotBlank(email) && StringUtils.isBlank(password)) {
 				System.err.println("When the email address is specified, the password is required");
+				System.err.println();
+
+				showCommandLineHelp(options);
+				System.exit(1);
+			}
+
+			// Dump option is only available in local operation.
+			if (StringUtils.isNotBlank(email) && dump) {
+				System.err.println("The dump option is not available for remote operation.");
 				System.err.println();
 
 				showCommandLineHelp(options);
@@ -301,6 +320,7 @@ public class AtagOneApp {
 				.format(outputFormat)
 				.hostName(hostName)
 				.skipAuthRequest(skipAuthRequest)
+				.dump(dump)
 				.build();
 
 		} catch (ParseException e) {
