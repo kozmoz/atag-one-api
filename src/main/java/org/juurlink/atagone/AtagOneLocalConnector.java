@@ -111,13 +111,22 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		final String hostName = configuration.getHostName();
 		if (StringUtils.isNotBlank(hostName)) {
 
-			// Host-name set, skip discovery during login process.
+			// The host-name is set, so we can skip discovery during login process.
 			final InetAddress deviceAddress = InetAddress.getByName(hostName);
 			selectedDevice = AtagOneInfo.builder().deviceAddress(deviceAddress).build();
 		}
 
 		// Local computer MAC address (used for communication with thermostat).
-		computerInfo = NetworkUtils.getDeviceInfo();
+		DeviceInfo deviceInfo = NetworkUtils.getDeviceInfo();
+		if (StringUtils.isNotBlank(configuration.getMac())) {
+			// Override MAC address with configured mac.
+			deviceInfo = DeviceInfo.builder()
+				.ip(deviceInfo.getIp())
+				.name(deviceInfo.getName())
+				.mac(configuration.getMac())
+				.build();
+		}
+		computerInfo = deviceInfo;
 	}
 
 	/**

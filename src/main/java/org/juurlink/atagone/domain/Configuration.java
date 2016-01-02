@@ -62,6 +62,12 @@ public class Configuration {
 	private boolean dump;
 
 	/**
+	 * Option to override mac address for authentication.
+	 */
+	@Nullable
+	private String mac;
+
+	/**
 	 * When no portal email address given, we presume local operation.
 	 */
 	public boolean isLocal() {

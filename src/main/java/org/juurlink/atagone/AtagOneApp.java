@@ -59,6 +59,7 @@ public class AtagOneApp {
 	private static final String OPTION_VERSION = "version";
 	private static final String OPTION_SKIP_AUTH_REQUEST = "skip-auth-request";
 	private static final String OPTION_DUMP = "dump";
+	private static final String OPTION_MAC = "mac";
 
 	private static final String PROPERTY_NAME_MAVEN_APPLICATION_VERSION = "applicationVersion";
 	private static final String PROPERTY_NAME_MAVEN_BUILD_DATE = "buildDate";
@@ -226,6 +227,7 @@ public class AtagOneApp {
 			"a new auth request is not entirely necessarily. Skipping this request in that case could save some seconds.");
 		options.addOption(null, OPTION_DUMP, false,
 			"Request all info and dump the complete response from the thermostat. Only supported for local thermostats.");
+		options.addOption(null, OPTION_MAC, true, "Option to override hardware address (mac address) for authentication.");
 
 		try {
 			CommandLineParser parser = new DefaultParser();
@@ -240,6 +242,7 @@ public class AtagOneApp {
 			final boolean hasVersion = cmd.hasOption(OPTION_VERSION);
 			final boolean skipAuthRequest = cmd.hasOption(OPTION_SKIP_AUTH_REQUEST);
 			final boolean dump = cmd.hasOption(OPTION_DUMP);
+			final String mac = cmd.getOptionValue(OPTION_MAC);
 			// Remaining arguments
 			final String hostName = cmd.getArgs() != null && cmd.getArgs().length > 0 ? cmd.getArgs()[0] : null;
 
@@ -321,6 +324,7 @@ public class AtagOneApp {
 				.hostName(hostName)
 				.skipAuthRequest(skipAuthRequest)
 				.dump(dump)
+				.mac(mac)
 				.build();
 
 		} catch (ParseException e) {
