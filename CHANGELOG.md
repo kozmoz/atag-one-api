@@ -1,5 +1,12 @@
 # Change Log
 
+## [v1.3.1](https://github.com/kozmoz/atag-one-api/tree/v1.3.1) (2016-01-02)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.0...v1.3.1)
+
+**Implemented enhancements:**
+
+- Add option to override hardware address \(mac address\) used for authentication [\#5](https://github.com/kozmoz/atag-one-api/issues/5)
+
 ## [v1.3.0](https://github.com/kozmoz/atag-one-api/tree/v1.3.0) (2015-12-27)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.0-rc1...v1.3.0)
 
@@ -8,6 +15,7 @@
 - Add "dump" mode to pass through all thermostat data [\#4](https://github.com/kozmoz/atag-one-api/issues/4)
 - Add option to skip authorization request [\#3](https://github.com/kozmoz/atag-one-api/issues/3)
 - Add host-name for direct connection to thermostat [\#2](https://github.com/kozmoz/atag-one-api/issues/2)
+- Set temperature for thermostat in local network [\#1](https://github.com/kozmoz/atag-one-api/issues/1)
 
 ## 1.2.1 (2015-12-16)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1-2-0...v1-2-1)
