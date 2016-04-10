@@ -1,11 +1,15 @@
 # Change Log
 
-## [v1.3.1](https://github.com/kozmoz/atag-one-api/tree/v1.3.1) (2016-01-02)
+## [v1.3.1](https://github.com/kozmoz/atag-one-api/tree/v1.3.1) (2016-04-10)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.0...v1.3.1)
 
 **Implemented enhancements:**
 
 - Add option to override hardware address \(mac address\) used for authentication [\#5](https://github.com/kozmoz/atag-one-api/issues/5)
+
+**Closed issues:**
+
+- Running with Java 6 throws an error: IncompatibleClassChangeError, DatagramSocket does not implement interface Closeable [\#6](https://github.com/kozmoz/atag-one-api/issues/6)
 
 ## [v1.3.0](https://github.com/kozmoz/atag-one-api/tree/v1.3.0) (2015-12-27)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.0-rc1...v1.3.0)
