@@ -1,5 +1,12 @@
 # Change Log
 
+## [v1.3.1](https://github.com/kozmoz/atag-one-api/tree/v1.3.1) (2016-05-16)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.1...v1.3.1)
+
+**Closed issues:**
+
+- It ignores private lan in the range 172.X [\#7](https://github.com/kozmoz/atag-one-api/issues/7)
+
 ## [v1.3.1](https://github.com/kozmoz/atag-one-api/tree/v1.3.1) (2016-04-10)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.0...v1.3.1)
 
