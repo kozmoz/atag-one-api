@@ -1,7 +1,7 @@
 # Change Log
 
-## [v1.3.1](https://github.com/kozmoz/atag-one-api/tree/v1.3.1) (2016-05-16)
-[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.1...v1.3.1)
+## [v1.3.2](https://github.com/kozmoz/atag-one-api/tree/v1.3.2) (2016-05-16)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.1...v1.3.2)
 
 **Closed issues:**
 
