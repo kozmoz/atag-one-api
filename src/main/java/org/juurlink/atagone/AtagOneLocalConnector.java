@@ -16,7 +16,7 @@ import org.juurlink.atagone.domain.DeviceInfo;
 import org.juurlink.atagone.domain.UdpMessage;
 import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
-import org.juurlink.atagone.exceptions.NotAuthorizedException;
+import org.juurlink.atagone.exceptions.NotauthorizedException;
 import org.juurlink.atagone.utils.CalendarUtils;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.NetworkUtils;
@@ -563,10 +563,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 	 * Test response for authorization errors.
 	 *
 	 * @param accStatus accStatus from response
-	 * @throws NotAuthorizedException When user did not approve authorization request
+	 * @throws NotauthorizedException When user did not approve authorization request
 	 * @throws AccessDeniedException  When user denied authorization request
 	 */
-	protected void assertAuthorized(@Nullable final Integer accStatus) throws NotAuthorizedException, AccessDeniedException {
+	protected void assertAuthorized(@Nullable final Integer accStatus) throws NotauthorizedException, AccessDeniedException {
 
 		if (accStatus == null) {
 			throw new IllegalStateException("Response '" + RESPONSE_ACC_STATUS + "' is null.");
@@ -579,7 +579,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
 		// User did not approve authorization request.
 		if (accStatus == 1) {
-			throw new NotAuthorizedException("Please grant access to connect to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat. \n" +
+			throw new NotauthorizedException("Please grant access to connect to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat. \n" +
 				"This is only a one time action per device that wants to connect.");
 		}
 

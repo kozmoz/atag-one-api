@@ -72,10 +72,6 @@ public class NetworkUtils {
 	 * Connection timeout in milliseconds.
 	 */
 	private static final int MAX_CONNECTION_TIMEOUT_MS = 60000;
-	/**
-	 * Time between retries in milliseconds.
-	 */
-	private static final int MAX_TIME_BETWEEN_RETRIES_MS = 2000;
 
 	static {
 		// Configure default in-memory cookie store.
@@ -248,10 +244,10 @@ public class NetworkUtils {
 					InetAddress ip = (InetAddress) ips.nextElement();
 					if (ip instanceof Inet4Address) {
 
-						// Ignore localhost, self-assigned and BlueTooth (which starts probably with 172).
+						// Ignore localhost, self-assigned and BlueTooth (which is probably from the 172.29.0.0/16 network).
 						String hostAddress = ip.getHostAddress();
-						if (hostAddress.startsWith("169.254") || hostAddress.startsWith("127") || hostAddress.startsWith("172")) {
-							log.info("Skip localhost address or 172 range: " + hostAddress);
+						if (hostAddress.startsWith("169.254") || hostAddress.startsWith("127") || hostAddress.startsWith("172.29")) {
+							log.info("Skip localhost, self assigned or 172.29/16 network: " + hostAddress);
 							continue;
 						}
 
@@ -396,7 +392,7 @@ public class NetworkUtils {
 
 		} catch (IOException e) {
 
-			// Retries exhausted; Connection failure.
+			// Connection failure.
 			String errorResponse = null;
 			try {
 				inputStreamErr = httpConnection.getErrorStream();

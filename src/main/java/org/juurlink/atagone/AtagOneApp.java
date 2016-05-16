@@ -30,7 +30,7 @@ import org.juurlink.atagone.domain.Version;
 import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
-import org.juurlink.atagone.exceptions.NotAuthorizedException;
+import org.juurlink.atagone.exceptions.NotauthorizedException;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
@@ -155,7 +155,7 @@ public class AtagOneApp {
 			System.err.println();
 			System.exit(1);
 
-		} catch (NotAuthorizedException e) {
+		} catch (NotauthorizedException e) {
 			// Print human readable error message.
 			System.err.println(e.getMessage());
 			System.err.println();
