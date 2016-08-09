@@ -1,5 +1,12 @@
 # Change Log
 
+## [v1.3.3](https://github.com/kozmoz/atag-one-api/tree/v1.3.3) (2016-08-10)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.2...v1.3.3)
+
+**Closed issues:**
+
+- Remote mode not working [\#8](https://github.com/kozmoz/atag-one-api/issues/8)
+
 ## [v1.3.2](https://github.com/kozmoz/atag-one-api/tree/v1.3.2) (2016-05-16)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.1...v1.3.2)
 
