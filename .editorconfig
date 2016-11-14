@@ -1,0 +1,34 @@
+# EditorConfig http://EditorConfig.org
+# https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties
+
+# top-most EditorConfig file
+root = true
+
+max_line_length = 150
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+
+# Set default charset
+[*.{js,json,html}]
+charset = utf-8
+
+# 4 space indentation
+[*.{js,html}]
+indent_style = space
+indent_size = 4
+
+# 2 space indentation
+[*.json]
+indent_style = space
+indent_size = 2
+
+# Domain-Specific Properties
+# Not implemented in all plugins.
+quote_type = single
+curly_bracket_next_line = false
+spaces_around_operators = false
+indent_brace_style = K&R
+continuation_indent_size = 8

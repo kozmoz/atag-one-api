@@ -13,8 +13,8 @@ import lombok.Value;
 @Value
 @Builder
 public class UdpMessage {
-	@Nonnull
-	private InetAddress senderAddress;
-	@Nonnull
-	private String message;
+    @Nonnull
+    private InetAddress senderAddress;
+    @Nonnull
+    private String message;
 }

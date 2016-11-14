@@ -14,11 +14,11 @@ import lombok.Value;
 @Value
 @Builder
 public class AtagOneInfo {
-	@Nonnull
-	private InetAddress deviceAddress;
-	/**
-	 * Not required for local communication.
-	 */
-	@Nullable
-	private String deviceId;
+    @Nonnull
+    private InetAddress deviceAddress;
+    /**
+     * Not required for local communication.
+     */
+    @Nullable
+    private String deviceId;
 }

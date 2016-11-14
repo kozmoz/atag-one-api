@@ -11,8 +11,12 @@ import lombok.Value;
 @Value
 @Builder
 public class Version {
-	@Nonnull
-	private String version;
-	@Nonnull
-	private String timestamp;
+    @Nonnull
+    private String version;
+    @Nonnull
+    private String timestamp;
+
+    public String toString() {
+        return version + "(" + timestamp + ")";
+    }
 }

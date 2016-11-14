@@ -16,61 +16,68 @@ import lombok.Value;
 @Builder
 public class Configuration {
 
-	/**
-	 * Set temperature, when set.
-	 */
-	@Nullable
-	BigDecimal temperature;
+    /**
+     * Set temperature, when set.
+     */
+    @Nullable
+    BigDecimal temperature;
 
-	/**
-	 * Email address of Atag Portal account.
-	 */
-	@Nullable
-	private String email;
+    /**
+     * Email address of Atag Portal account.
+     */
+    @Nullable
+    private String email;
 
-	/**
-	 * Password of Atag Portal account.
-	 */
-	@Nullable
-	private String password;
+    /**
+     * Password of Atag Portal account.
+     */
+    @Nullable
+    private String password;
 
-	/**
-	 * Debug logging.
-	 */
-	private boolean debug;
+    /**
+     * Debug logging.
+     */
+    private boolean debug;
 
-	/**
-	 * Output format; CSV or JSON.
-	 */
-	@Nullable
-	private FORMAT format;
+    /**
+     * Output format; CSV or JSON.
+     */
+    @Nullable
+    private FORMAT format;
 
-	/**
-	 * Host-name of local thermostat.
-	 */
-	@Nullable
-	private String hostName;
+    /**
+     * Host-name of local thermostat.
+     */
+    @Nullable
+    private String hostName;
 
-	/**
-	 * Skip request for authorization.
-	 */
-	private boolean skipAuthRequest;
+    /**
+     * Skip request for authorization.
+     */
+    private boolean skipAuthRequest;
 
-	/**
-	 * When true, dump the complete response from the thermostat.
-	 */
-	private boolean dump;
+    /**
+     * When true, dump the complete response from the thermostat.
+     */
+    private boolean dump;
 
-	/**
-	 * Option to override mac address for authentication.
-	 */
-	@Nullable
-	private String mac;
+    /**
+     * Option to override mac address for authentication.
+     */
+    @Nullable
+    private String mac;
 
-	/**
-	 * When no portal email address given, we presume local operation.
-	 */
-	public boolean isLocal() {
-		return StringUtils.isBlank(email);
-	}
+    /**
+     * API library version.
+     * (Used for HTTP request header).
+     */
+    @Nullable
+    private Version version;
+
+    /**
+     * When no portal email address given, we presume local operation.
+     */
+    public boolean isLocal() {
+        return StringUtils.isBlank(email);
+    }
 }

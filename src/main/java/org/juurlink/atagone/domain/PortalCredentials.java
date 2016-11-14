@@ -9,6 +9,6 @@ import lombok.Value;
 @Value
 @Builder
 public class PortalCredentials {
-	private String emailAddress;
-	private String password;
+    private String emailAddress;
+    private String password;
 }
