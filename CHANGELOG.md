@@ -1,6 +1,17 @@
 # Change Log
 
-## [v1.3.3](https://github.com/kozmoz/atag-one-api/tree/v1.3.3) (2016-08-10)
+## [v1.4.0](https://github.com/kozmoz/atag-one-api/tree/v1.4.0) (2016-11-14)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.3...v1.4.0)
+
+**Implemented enhancements:**
+
+- Add Atag One device version to api output [\#10](https://github.com/kozmoz/atag-one-api/issues/10)
+
+**Closed issues:**
+
+- Access not yet granted since R46 [\#9](https://github.com/kozmoz/atag-one-api/issues/9)
+
+## [v1.3.3](https://github.com/kozmoz/atag-one-api/tree/v1.3.3) (2016-08-09)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.2...v1.3.3)
 
 **Closed issues:**
