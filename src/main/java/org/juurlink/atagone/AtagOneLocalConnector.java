@@ -214,7 +214,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
         // Response:
         // { "update_reply":{ "seqnr":0,"status":{"device_id":"6808-1401-3109_15-30-001-123","device_status":16385,"connection_status":23,"date_time":503527795},"acc_status":2} }
-        final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, AtagOneConnectorInterface.VALUE_DEVICE_ID);
+        final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
         assertAuthorized(accStatus);
 
         // Update Device ID?
