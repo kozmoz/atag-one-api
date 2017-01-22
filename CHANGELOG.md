@@ -1,5 +1,18 @@
 # Change Log
 
+## [v1.4.1](https://github.com/kozmoz/atag-one-api/tree/v1.4.1) (2017-01-22)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.0...v1.4.1)
+
+**Implemented enhancements:**
+
+- The discovery method does not output debug logging [\#14](https://github.com/kozmoz/atag-one-api/issues/14)
+- "flameStatus" is missing from diagnostics [\#12](https://github.com/kozmoz/atag-one-api/issues/12)
+
+**Fixed bugs:**
+
+- Authorization request does not include mac\_address [\#13](https://github.com/kozmoz/atag-one-api/issues/13)
+- State Error: Response 'acc\_status' is null. [\#11](https://github.com/kozmoz/atag-one-api/issues/11)
+
 ## [v1.4.0](https://github.com/kozmoz/atag-one-api/tree/v1.4.0) (2016-11-14)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.3...v1.4.0)
 
