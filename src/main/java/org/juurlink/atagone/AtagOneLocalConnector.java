@@ -148,14 +148,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
     public void login() throws IOException {
 
         if (selectedDevice == null) {
-            log.fine("Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
             selectedDevice = searchOnes();
             if (selectedDevice == null) {
                 throw new AtagSearchErrorException("Cannot find " + AtagOneApp.THERMOSTAT_NAME + " thermostat in local network.");
             }
-
-            // Device found in local network.
-            log.fine(AtagOneApp.THERMOSTAT_NAME + " found in local network: " + selectedDevice);
 
         } else {
             log.fine("Connect to configured " + AtagOneApp.THERMOSTAT_NAME + " in the local network.");
@@ -349,6 +345,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         values.put(VALUE_TARGET_TEMPERATURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "shown_set_temp"));
 
         // Values only local available.
+        final Integer boilerStatus = JSONUtils.getJSONValueByName(response, Integer.class, "boiler_status");
         values.put("deviceStatus", JSONUtils.getJSONValueByName(response, Integer.class, "device_status"));
         values.put("connectionStatus", JSONUtils.getJSONValueByName(response, Integer.class, "connection_status"));
         values.put("deviceErrors", JSONUtils.getJSONValueByName(response, String.class, "device_errors"));
@@ -357,7 +354,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         values.put("pcbTemp", JSONUtils.getJSONValueByName(response, BigDecimal.class, "pcb_temp"));
         values.put("dhwWaterTemp", JSONUtils.getJSONValueByName(response, BigDecimal.class, "dhw_water_temp"));
         values.put("dhwWaterPres", JSONUtils.getJSONValueByName(response, BigDecimal.class, "dhw_water_pres"));
-        values.put("boilerStatus", JSONUtils.getJSONValueByName(response, Integer.class, "boiler_status"));
+        values.put("boilerStatus", boilerStatus);
         values.put("boilerConfig", JSONUtils.getJSONValueByName(response, Integer.class, "boiler_config"));
         values.put("chTimeToTemp", JSONUtils.getJSONValueByName(response, Integer.class, "ch_time_to_temp"));
         values.put("powerCons", JSONUtils.getJSONValueByName(response, Integer.class, "power_cons"));
@@ -378,9 +375,14 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         values.put("vacationDuration", JSONUtils.getJSONValueByName(response, Integer.class, "vacation_duration"));
         values.put("extendDuration", JSONUtils.getJSONValueByName(response, Integer.class, "extend_duration"));
         values.put("fireplaceDuration", JSONUtils.getJSONValueByName(response, Integer.class, "fireplace_duration"));
-        values.put("atagOneVersion", atagOneVersion);
 
-        // Todo: get "flameStatus" from chStatus / chMode?
+        // Get "flameStatus" from boilerStatus bit 3.
+        if (boilerStatus != null) {
+            values.put("flameStatus", (boilerStatus & 8) == 8 ? "On" : "Off");
+        }
+
+        values.put("atagOneVersion", atagOneVersion);
+        values.put("macAddress", macAddress);
 
         // Update Device ID?
         updateSelectedDevice(response);
@@ -443,6 +445,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
     @Nullable
     protected AtagOneInfo searchOnes() throws IOException {
 
+        log.fine("Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network for " + MAX_LISTEN_TIMEOUT_SECONDS + " seconds.");
+
         final String messageTag = "ONE ";
 
         UdpMessage udpMessage = null;
@@ -450,6 +454,9 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         while (maxRetriesAfterTechnicalError > 0) {
             try {
                 udpMessage = NetworkUtils.getUdpBroadcastMessage(UDP_BROADCAST_PORT, MAX_LISTEN_TIMEOUT_SECONDS, messageTag);
+
+                log.finest("UDP message successful received: " + udpMessage);
+
                 // No technical errors occurred, stop listening.
                 break;
 
@@ -458,16 +465,24 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
                 if (maxRetriesAfterTechnicalError <= 0) {
                     throw e;
                 }
+
+                log.fine("Error receiving UDP message: " + e.getMessage() + ". \nRetry " + maxRetriesAfterTechnicalError + " more times.");
             }
         }
 
         if (udpMessage != null) {
             // We received a message that matches our tag.
             String deviceId = udpMessage.getMessage().split(" ")[1];
-            return AtagOneInfo.builder()
+
+            final AtagOneInfo deviceFound = AtagOneInfo.builder()
                 .deviceAddress(udpMessage.getSenderAddress())
                 .deviceId(deviceId)
                 .build();
+
+            // Device found in local network.
+            log.fine(AtagOneApp.THERMOSTAT_NAME + " found in local network: " + deviceFound);
+
+            return deviceFound;
         }
 
         // No thermostat found.
@@ -503,13 +518,15 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         String jsonPayload = "{\"pair_message\":{\"seqnr\":0," +
             "\"account_auth\":{" +
             "\"user_account\":\"\"," +
-            "\"mac_address\":\" + macAddress + \"}," +
+            "\"mac_address\":\"" + macAddress + "\"}," +
             "\"accounts\":" +
             "{\"entries\":[{" +
             "\"user_account\":\"\"," +
             "\"mac_address\":\"" + macAddress + "\"," +
             "\"device_name\":\"" + deviceName + "\"," +
             "\"account_type\":0}]}}}";
+
+        log.finest("POST payload:\n" + jsonPayload);
 
         // 1 = Pending
         // 2 = Accepted
@@ -537,6 +554,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
         // Test accStatus response.
         assertAuthorized(accStatus);
+
+        log.fine("Access granted; accStatus == " + accStatus);
     }
 
     /**
@@ -596,7 +615,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
      * @throws NotauthorizedException When user did not approve authorization request
      * @throws AccessDeniedException  When user denied authorization request
      */
-    protected void assertAuthorized(@Nullable final Integer accStatus) throws NotauthorizedException, AccessDeniedException {
+    protected void assertAuthorized(@Nullable
+    final Integer accStatus) throws NotauthorizedException, AccessDeniedException {
 
         if (accStatus == null) {
             throw new IllegalStateException("Response '" + RESPONSE_ACC_STATUS + "' is null.");
