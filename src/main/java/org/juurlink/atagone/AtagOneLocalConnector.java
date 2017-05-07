@@ -3,7 +3,7 @@ package org.juurlink.atagone;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetAddress;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -329,7 +329,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         final Integer reportTime = JSONUtils.getJSONValueByName(response, Integer.class, "report_time");
 
         if (reportTime != null) {
-            final Date dateObject = CalendarUtils.toDateObject(reportTime);
+            final LocalDateTime dateObject = CalendarUtils.toDateObject(reportTime);
             values.put(VALUE_LATEST_REPORT_TIME, CalendarUtils.formatDate(dateObject));
         }
         // VALUE_CONNECTED_TO

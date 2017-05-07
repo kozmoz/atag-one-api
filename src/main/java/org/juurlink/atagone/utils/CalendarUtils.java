@@ -1,9 +1,9 @@
 package org.juurlink.atagone.utils;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.TimeZone;
 
 import javax.annotation.Nonnull;
 
@@ -22,12 +22,12 @@ public class CalendarUtils {
      * @return Date object
      */
     @Nonnull
-    public static Date toDateObject(final long atagOneDate) {
-        final Calendar calendar = Calendar.getInstance();
-        // Convert seconds to milliseconds and add 30 years.
-        calendar.setTime(new Date(atagOneDate * 1000L));
-        calendar.add(Calendar.YEAR, 30);
-        return calendar.getTime();
+    public static LocalDateTime toDateObject(final long atagOneDate) {
+        TimeZone timeZone = TimeZone.getDefault();
+        int offset = timeZone.getOffset(atagOneDate * 1000);
+        LocalDateTime ofEpoch = LocalDateTime.ofEpochSecond(atagOneDate, 0, ZoneOffset.ofTotalSeconds(offset/1000));
+        LocalDateTime reportTime = ofEpoch.plusYears(30).minusDays(1);
+        return reportTime;
     }
 
     /**
@@ -36,9 +36,9 @@ public class CalendarUtils {
      * @return formatted date.
      */
     @Nonnull
-    public static String formatDate(@Nonnull @NonNull Date dateObject) {
+    public static String formatDate(@Nonnull @NonNull LocalDateTime dateObject) {
         // 2015-12-11 23:56:55
-        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return formatter.format(dateObject);
     }
 }
