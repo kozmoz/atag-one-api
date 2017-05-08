@@ -1,5 +1,20 @@
 # Change Log
 
+## [v1.4.2](https://github.com/kozmoz/atag-one-api/tree/v1.4.2) (2017-05-08)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.1...v1.4.2)
+
+**Implemented enhancements:**
+
+- Needs Java 8 to build [\#18](https://github.com/kozmoz/atag-one-api/issues/18)
+
+**Fixed bugs:**
+
+- Report time ligt een dag min een paar seconden in de toekomst [\#16](https://github.com/kozmoz/atag-one-api/issues/16)
+
+**Merged pull requests:**
+
+-  Report time ligt een dag min een paar seconden in de toekomst [\#17](https://github.com/kozmoz/atag-one-api/pull/17) ([Crispify](https://github.com/Crispify))
+
 ## [v1.4.1](https://github.com/kozmoz/atag-one-api/tree/v1.4.1) (2017-01-22)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.0...v1.4.1)
 
