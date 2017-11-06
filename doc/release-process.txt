@@ -1,0 +1,22 @@
+Release process description
+
+- On GitHub, add new version for next release.
+	- Issues -> Milestones - https://github.com/kozmoz/atag-one-api/milestones
+
+- Draft new release for next version
+	- https://github.com/kozmoz/atag-one-api/releases
+
+- Create new binary
+	- Set version in pom.xml (without the -SNAPSHOT, - eg 1.4.3)
+	- Make new Maven build
+	- Update version to next snapshot version - eg 1.4.4-SNAPHOT
+	- Upload binary from target folder to github releases page
+
+- Create new release for new version
+    - Edit .github_changelog_generator and update future version to new to release version
+	- Run ./generate_changelog.sh to update the auto generated changelog
+	- https://github.com/kozmoz/atag-one-api/releases
+
+- Close Milestone
+
+	

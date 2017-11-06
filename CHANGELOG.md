@@ -1,5 +1,17 @@
 # Change Log
 
+## [v1.4.3](https://github.com/kozmoz/atag-one-api/tree/v1.4.3) (2017-11-06)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.2...v1.4.3)
+
+**Implemented enhancements:**
+
+- Modulation and other detailed information missing from --dump output [\#20](https://github.com/kozmoz/atag-one-api/issues/20)
+
+**Closed issues:**
+
+- Update Java libraries and maven plugin [\#22](https://github.com/kozmoz/atag-one-api/issues/22)
+- Remote API werkt niet [\#19](https://github.com/kozmoz/atag-one-api/issues/19)
+
 ## [v1.4.2](https://github.com/kozmoz/atag-one-api/tree/v1.4.2) (2017-05-08)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.1...v1.4.2)
 
@@ -66,13 +78,6 @@
 
 ## [v1.3.0](https://github.com/kozmoz/atag-one-api/tree/v1.3.0) (2015-12-27)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.3.0-rc1...v1.3.0)
-
-**Implemented enhancements:**
-
-- Add "dump" mode to pass through all thermostat data [\#4](https://github.com/kozmoz/atag-one-api/issues/4)
-- Add option to skip authorization request [\#3](https://github.com/kozmoz/atag-one-api/issues/3)
-- Add host-name for direct connection to thermostat [\#2](https://github.com/kozmoz/atag-one-api/issues/2)
-- Set temperature for thermostat in local network [\#1](https://github.com/kozmoz/atag-one-api/issues/1)
 
 ## 1.2.1 (2015-12-16)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1-2-0...v1-2-1)
