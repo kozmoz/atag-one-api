@@ -55,6 +55,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
     private static final int MESSAGE_INFO_REPORT = 8;
     private static final int MESSAGE_INFO_STATUS = 16;
     private static final int MESSAGE_INFO_WIFISCAN = 32;
+    private static final int MESSAGE_INFO_EXTRA = 64;
 
     /**
      * UDP port the thermostat sends its messages to.
@@ -145,7 +146,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
      */
     @Override
     @SneakyThrows
-    public void login() throws IOException {
+    public void login() {
 
         if (selectedDevice == null) {
             selectedDevice = searchOnes();
@@ -321,7 +322,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		"acc_status":2} }
 		 */
 
-        Map<String, Object> values = new LinkedHashMap<String, Object>();
+        Map<String, Object> values = new LinkedHashMap<>();
 
         values.put(VALUE_DEVICE_IP, selectedDevice.getDeviceAddress().getHostAddress());
         values.put(VALUE_DEVICE_ID, JSONUtils.getJSONValueByName(response, String.class, "device_id"));
@@ -416,7 +417,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         final String macAddress = computerInfo.getMac();
 
         final int info = MESSAGE_INFO_CONTROL + MESSAGE_INFO_SCHEDULES + MESSAGE_INFO_CONFIGURATION + MESSAGE_INFO_REPORT + MESSAGE_INFO_STATUS +
-            MESSAGE_INFO_WIFISCAN;
+            MESSAGE_INFO_WIFISCAN + MESSAGE_INFO_EXTRA;
         final String jsonPayload = "{\"retrieve_message\":{" +
             "\"seqnr\":0," +
             "\"account_auth\":{" +
