@@ -7,7 +7,7 @@ import org.junit.Test;
 public class NumberUtilsTest {
 
 	@Test
-	public void testRoundHalf() throws Exception {
+    public void testRoundHalf() {
 		assertEquals(0, NumberUtils.roundHalf(0), 0);
 		assertEquals(0.5f, NumberUtils.roundHalf(0.5f), 0);
 		assertEquals(10f, NumberUtils.roundHalf(10f), 0);

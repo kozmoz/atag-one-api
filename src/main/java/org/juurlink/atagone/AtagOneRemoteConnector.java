@@ -20,6 +20,7 @@ import org.juurlink.atagone.utils.StringUtils;
 
 import lombok.NonNull;
 import lombok.extern.java.Log;
+import lombok.val;
 
 /**
  * Connect to ATAG One thermostat through ATAG One (internet) portal.
@@ -74,15 +75,15 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
         log.fine("POST authentication data: " + URL_LOGIN);
 
         // We need a session (cookie) and a verification token, get them first.
-        String requestVerificationToken = getRequestVerificationToken(URL_LOGIN);
+        val requestVerificationToken = getRequestVerificationToken(URL_LOGIN);
 
-        Map<String, String> params = new LinkedHashMap<String, String>();
+        val params = new LinkedHashMap<String, String>();
         params.put("__RequestVerificationToken", requestVerificationToken);
         params.put("Email", portalCredentials.getEmailAddress());
         params.put("Password", portalCredentials.getPassword());
         params.put("RememberMe", "false");
 
-        String html = NetworkUtils.getPostPageContent(URL_LOGIN, params, versionString);
+        val html = NetworkUtils.getPostPageContent(URL_LOGIN, params, versionString);
         selectedDeviceId = HTMLUtils.extractDeviceId(html);
 
         if (StringUtils.isBlank(selectedDeviceId)) {
@@ -104,15 +105,15 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
             throw new IllegalArgumentException("No Device selected, cannot get diagnostics.");
         }
 
-        final String diagnosticsUrl = URL_DIAGNOSTICS + "?deviceId=" + URLEncoder.encode(selectedDeviceId, ENCODING_UTF_8);
+        val diagnosticsUrl = URL_DIAGNOSTICS + "?deviceId=" + URLEncoder.encode(selectedDeviceId, ENCODING_UTF_8);
         log.fine("GET diagnostics: URL=" + diagnosticsUrl);
 
         // HTTP(S) Connect.
-        String html = NetworkUtils.getPageContent(diagnosticsUrl, versionString);
+        val html = NetworkUtils.getPageContent(diagnosticsUrl, versionString);
         log.fine("GET diagnostics: Response HTML\n" + html);
 
         // Scrape values from HTML page.
-        Map<String, Object> values = new LinkedHashMap<String, Object>();
+        val values = new LinkedHashMap<String, Object>();
         values.put(VALUE_DEVICE_ID, selectedDeviceId);
         values.put(VALUE_DEVICE_ALIAS, HTMLUtils.getValueByLabel(html, String.class, "Apparaat alias", "Device alias"));
         values.put(VALUE_LATEST_REPORT_TIME, HTMLUtils.getValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time"));
@@ -131,18 +132,18 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 
         // We have to do an extra call to get the target temperature.
         // {"isHeating":false,"targetTemp":"17.0","currentTemp":"16.9","vacationPlanned":false,"currentMode":"manual"}
-        String deviceControlUrl = URL_UPDATE_DEVICE_CONTROL.replace("{0}", URLEncoder.encode(selectedDeviceId, ENCODING_UTF_8));
+        val deviceControlUrl = URL_UPDATE_DEVICE_CONTROL.replace("{0}", URLEncoder.encode(selectedDeviceId, ENCODING_UTF_8));
         log.fine("GET deviceControl: URL=" + deviceControlUrl);
 
         // HTTP(S) Connect.
-        html = NetworkUtils.getPageContent(deviceControlUrl, versionString);
-        log.fine("GET deviceControl: Response HTML\n" + html);
+        val html2 = NetworkUtils.getPageContent(deviceControlUrl, versionString);
+        log.fine("GET deviceControl: Response HTML\n" + html2);
 
-        final String targetTemp = JSONUtils.getJSONValueByName(html, String.class, "targetTemp");
-        final BigDecimal targetTempNumber = new BigDecimal(targetTemp != null ? targetTemp : "0");
+        val targetTemp = JSONUtils.getJSONValueByName(html2, String.class, "targetTemp");
+        val targetTempNumber = new BigDecimal(targetTemp != null ? targetTemp : "0");
         values.put(VALUE_TARGET_TEMPERATURE, targetTempNumber);
-        values.put(VALUE_CURRENT_MODE, JSONUtils.getJSONValueByName(html, String.class, "currentMode"));
-        values.put(VALUE_VACATION_PLANNED, JSONUtils.getJSONValueByName(html, Boolean.class, "vacationPlanned"));
+        values.put(VALUE_CURRENT_MODE, JSONUtils.getJSONValueByName(html2, String.class, "currentMode"));
+        values.put(VALUE_VACATION_PLANNED, JSONUtils.getJSONValueByName(html2, Boolean.class, "vacationPlanned"));
 
         return values;
     }
@@ -168,19 +169,19 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
         }
 
         // Get updated request verification token first.
-        final String requestVerificationToken = getRequestVerificationToken(URL_DEVICE_HOME);
+        val requestVerificationToken = getRequestVerificationToken(URL_DEVICE_HOME);
 
         // https://portal.atag-one.com/Home/DeviceSetSetpoint/6808-1401-3109_15-30-001-544?temperature=18.5
-        final String newUrl = URL_DEVICE_SET_SETPOINT + "/" + selectedDeviceId + "?temperature=" + roundedTemperature;
+        val newUrl = URL_DEVICE_SET_SETPOINT + "/" + selectedDeviceId + "?temperature=" + roundedTemperature;
         log.fine("POST setDeviceSetPoint: " + newUrl);
 
-        Map<String, String> params = new HashMap<String, String>();
+        val params = new HashMap<String, String>();
         params.put("__RequestVerificationToken", requestVerificationToken);
 
         // Response contains current temperature.
         // {\"ch_control_mode\":0,\"temp_influenced\":false,\"room_temp\":18.0,\"ch_mode_temp\":18.2,\"is_heating\":true,\"vacationPlanned\":false,\"temp_increment\":null,\"round_half\":false,\"schedule_base_temp\":null,\"outside_temp\":null}
-        final String html = NetworkUtils.getPostPageContent(newUrl, params, versionString);
-        BigDecimal roomTemperature = JSONUtils.getJSONValueByName(html, BigDecimal.class, JSON_ROOM_TEMP);
+        val html = NetworkUtils.getPostPageContent(newUrl, params, versionString);
+        val roomTemperature = JSONUtils.getJSONValueByName(html, BigDecimal.class, JSON_ROOM_TEMP);
         if (roomTemperature != null) {
             // Ok.
             return roomTemperature;
@@ -190,7 +191,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
     }
 
     @Override
-    public String dump() throws IOException {
+    public String dump() {
         throw new IllegalStateException("Dump not available in remote operation.");
     }
 
@@ -209,11 +210,11 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
         // HTTP(S) Connect.
 
         // Try to replace device id, ignore when no replace string available.
-        final String newUrl = url.replace("{0}", StringUtils.defaultString(selectedDeviceId));
-        String html = NetworkUtils.getPageContent(newUrl, versionString);
+        val newUrl = url.replace("{0}", StringUtils.defaultString(selectedDeviceId));
+        val html = NetworkUtils.getPageContent(newUrl, versionString);
 
         // Get request verification.
-        String requestVerificationToken = HTMLUtils.extractRequestVerificationToken(html);
+        val requestVerificationToken = HTMLUtils.extractRequestVerificationToken(html);
         if (!StringUtils.isBlank(requestVerificationToken)) {
             return requestVerificationToken;
         }

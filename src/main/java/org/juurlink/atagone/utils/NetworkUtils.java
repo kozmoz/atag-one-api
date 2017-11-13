@@ -40,6 +40,7 @@ import lombok.NonNull;
 import lombok.Value;
 import lombok.experimental.UtilityClass;
 import lombok.extern.java.Log;
+import lombok.val;
 
 /**
  * HTTP related utility methods.
@@ -231,17 +232,16 @@ public class NetworkUtils {
      */
     public static synchronized List<InetAddress> getLocalHosts() {
 
-        List<InetAddress> localHost = new ArrayList<InetAddress>();
+        val localHost = new ArrayList<InetAddress>();
 
         try {
             localHost.clear();
 
-            Map<String, InetAddress> addresses = new HashMap<String, InetAddress>();
-
-            Enumeration iFaces = NetworkInterface.getNetworkInterfaces();
+            val addresses = new HashMap<String, InetAddress>();
+            val iFaces = NetworkInterface.getNetworkInterfaces();
             for (; iFaces.hasMoreElements(); ) {
 
-                NetworkInterface iface = (NetworkInterface) iFaces.nextElement();
+                val iface = iFaces.nextElement();
 
                 // Ignore local and virtual interfaces.
                 if (!iface.isUp() || iface.isVirtual() || iface.isLoopback() || iface.isPointToPoint()) {
@@ -249,18 +249,18 @@ public class NetworkUtils {
                 }
 
                 // getName() gives short name.
-                String ifaceName = iface.getName().toLowerCase();
+                val ifaceName = iface.getName().toLowerCase();
                 if (ifaceName.startsWith("lo") || ifaceName.startsWith("vmnet") || ifaceName.startsWith("vboxnet")) {
                     // Skip local, VMWare and VirtualBox.
                     continue;
                 }
 
                 for (Enumeration ips = iface.getInetAddresses(); ips.hasMoreElements(); ) {
-                    InetAddress ip = (InetAddress) ips.nextElement();
+                    val ip = (InetAddress) ips.nextElement();
                     if (ip instanceof Inet4Address) {
 
                         // Ignore localhost, self-assigned and BlueTooth (which is probably from the 172.29.0.0/16 network).
-                        String hostAddress = ip.getHostAddress();
+                        val hostAddress = ip.getHostAddress();
                         if (hostAddress.startsWith("169.254") || hostAddress.startsWith("127") || hostAddress.startsWith("172.29")) {
                             log.info("Skip localhost, self assigned or 172.29/16 network: " + hostAddress);
                             continue;
@@ -279,14 +279,13 @@ public class NetworkUtils {
 
             // Cache addresses found.
             if (addresses.size() == 1) {
-
                 localHost.addAll(addresses.values());
                 return localHost;
 
             } else if (addresses.size() > 1) {
 
                 // More then one address found, order list bij name (eth0 will be on top, above eth1).
-                List<String> interfaceNames = new ArrayList<String>(addresses.keySet());
+                val interfaceNames = new ArrayList<String>(addresses.keySet());
                 StringUtils.sort(interfaceNames);
 
                 for (String interfaceName : interfaceNames) {
@@ -344,11 +343,11 @@ public class NetworkUtils {
             // Keep reading received messages until time runs out.
             while (System.currentTimeMillis() < endTimeMs) {
 
-                final DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
+                val datagramPacket = new DatagramPacket(receiveData, receiveData.length);
                 datagramSocket.receive(datagramPacket);
 
-                final InetAddress senderAddress = datagramPacket.getAddress();
-                final String receivedMessage = new String(datagramPacket.getData(), ENCODING_UTF_8);
+                val senderAddress = datagramPacket.getAddress();
+                val receivedMessage = new String(datagramPacket.getData(), ENCODING_UTF_8);
 
                 // Found message
                 if (receivedMessage.startsWith(messageTag)) {
@@ -373,7 +372,7 @@ public class NetworkUtils {
      */
     @Nonnull
     public static String formatHardwareAddress(final byte[] mac) {
-        StringBuilder macAddressString = new StringBuilder();
+        val macAddressString = new StringBuilder();
         for (int i = 0; i < mac.length; i++) {
             macAddressString.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
         }
@@ -393,7 +392,7 @@ public class NetworkUtils {
         InputStream inputStreamErr = null;
         try {
             inputStreamStd = httpConnection.getInputStream();
-            final String html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
+            val html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
 
             // Does the page contain an error message?
             // (Only in case of HTML response.)
@@ -439,7 +438,7 @@ public class NetworkUtils {
      * @throws IOException in case of connection error
      */
     protected static HttpURLConnection createHttpConnection(final String urlString, final @Nullable String versionString) throws IOException {
-        HttpURLConnection httpConnection = (HttpURLConnection) new URL(urlString).openConnection();
+        val httpConnection = (HttpURLConnection) new URL(urlString).openConnection();
 
         // Complete list of HTTP header fields:
         // https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
@@ -479,7 +478,7 @@ public class NetworkUtils {
      */
     protected static byte[] createPostBody(final Map<String, String> parameters) throws UnsupportedEncodingException {
         // Create POST request payload.
-        StringBuilder urlParams = new StringBuilder();
+        val urlParams = new StringBuilder();
         for (Entry<String, String> stringStringEntry : parameters.entrySet()) {
             if (urlParams.length() > 0) {
                 urlParams.append("&");

@@ -9,6 +9,7 @@ import javax.annotation.Nonnull;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 /**
  * Date related utility methods.
@@ -23,11 +24,10 @@ public class CalendarUtils {
      */
     @Nonnull
     public static LocalDateTime toDateObject(final long atagOneDate) {
-        TimeZone timeZone = TimeZone.getDefault();
-        int offset = timeZone.getOffset(atagOneDate * 1000);
-        LocalDateTime ofEpoch = LocalDateTime.ofEpochSecond(atagOneDate, 0, ZoneOffset.ofTotalSeconds(offset/1000));
-        LocalDateTime reportTime = ofEpoch.plusYears(30).minusDays(1);
-        return reportTime;
+        val timeZone = TimeZone.getDefault();
+        val offset = timeZone.getOffset(atagOneDate * 1000);
+        val ofEpoch = LocalDateTime.ofEpochSecond(atagOneDate, 0, ZoneOffset.ofTotalSeconds(offset / 1000));
+        return ofEpoch.plusYears(30).minusDays(1);
     }
 
     /**
@@ -38,7 +38,6 @@ public class CalendarUtils {
     @Nonnull
     public static String formatDate(@Nonnull @NonNull LocalDateTime dateObject) {
         // 2015-12-11 23:56:55
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        return formatter.format(dateObject);
+        return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(dateObject);
     }
 }

@@ -14,7 +14,7 @@ public class NetworkUtilsTest {
 
 	@Test
 	public void testCreatePostBody() throws Exception {
-		Map<String, String> params = new LinkedHashMap<String, String>();
+        Map<String, String> params = new LinkedHashMap<>();
 		params.put("__RequestVerificationToken", "123456-123%&");
 		params.put("Email", "username@test.com");
 		params.put("Password", "Password&^%");
@@ -28,7 +28,7 @@ public class NetworkUtilsTest {
 	}
 
 	@Test
-	public void testExtractPageErrorFromHtml() throws Exception {
+    public void testExtractPageErrorFromHtml() {
 		String html = "                        <div class=\"error validation-message\">\n" +
 			"                            <ul>\n" +
 			"                                <li class=\"text-error\"><span>Your account has been locked out due to multiple failed login attempts. It will be unlocked in 12 minutes.</span>\n" +

@@ -11,7 +11,7 @@ public class HTMLUtilsTest {
 
 	@Test
 	@SuppressWarnings("ConstantConditions")
-	public void testGetDiagnosticValueByLabel() throws Exception {
+    public void testGetDiagnosticValueByLabel() {
 		final String html = "            <div class=\"form-group no-border-top\">\n" +
 			"                <label class=\"col-xs-6 control-label\">Apparaat</label>\n" +
 			"                <div class=\"col-xs-6\">\n" +
@@ -76,7 +76,7 @@ public class HTMLUtilsTest {
 	}
 
 	@Test
-	public void testGetRequestVerificationToken() throws Exception {
+    public void testGetRequestVerificationToken() {
 		final String html = "<div id=\"content\" class=\"col-xs-offset-0 col-xs-12 col-sm-offset-1 col-sm-6\">\n" +
 			"<form action=\"/Account/Login\" autocomplete=\"off\" class=\"form-horizontal\" method=\"post\">" +
 			"<input name=\"__RequestVerificationToken\" type=\"hidden\" value=\"lFVlMZlt2-YJKAwZWS_K_p3gsQWjZOvBNBZ3lM8io_nFGFL0oRsj4YwQUdqGfyrEqGwEUPmm0FgKH1lPWdk257tuTWQ1\" />    <div class=\"login-container center-block\">\n" +
@@ -89,7 +89,7 @@ public class HTMLUtilsTest {
 	}
 
 	@Test
-	public void testGetDeviceId() throws Exception {
+    public void testGetDeviceId() {
 		final String html = "<tr onclick=\"javascript:changeDeviceAndRedirect('/Home/Index/{0}','6808-1401-3109_15-30-001-555');\">";
 
 		final String actual = HTMLUtils.extractDeviceId(html);

@@ -1,5 +1,15 @@
 package org.juurlink.atagone;
 
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_BOILER_HEATING_FOR;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_RETURN_TEMPERATURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_SETPOINT;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_WATER_PRESSURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_WATER_TEMPERATURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_FLAME_STATUS;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_OUTSIDE_TEMPERATURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_ROOM_TEMPERATURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_TARGET_TEMPERATURE;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -30,12 +40,12 @@ import org.juurlink.atagone.domain.Version;
 import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagPageErrorException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
-import org.juurlink.atagone.exceptions.NotauthorizedException;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
 import lombok.NonNull;
 import lombok.extern.java.Log;
+import lombok.val;
 
 /**
  * ATAG ONE Portal API.
@@ -68,11 +78,10 @@ public class AtagOneApp {
     /**
      * Application start point.
      */
-    public static void main(String[] args) throws Exception {
-
-        final Version versionInfo = getVersionInfo();
+    public static void main(String[] args) {
 
         // Determine what to do.
+        val versionInfo = getVersionInfo();
         final Configuration configuration = validateAndParseCommandLine(args, versionInfo);
 
         // Show debugging info?
@@ -82,14 +91,14 @@ public class AtagOneApp {
 
         try {
             // Initialize ATAG ONE connector; Either Local or Remote.
-            AtagOneConnectorInterface atagOneConnector = new AtagOneConnectorFactory().getInstance(configuration);
+            val atagOneConnector = new AtagOneConnectorFactory().getInstance(configuration);
 
             // Login; Either local or remote.
             atagOneConnector.login();
 
             // Set temperature?
             if (configuration.getTemperature() != null) {
-                BigDecimal currentRoomTemperature = atagOneConnector.setTemperature(configuration.getTemperature());
+                val currentRoomTemperature = atagOneConnector.setTemperature(configuration.getTemperature());
                 if (currentRoomTemperature != null) {
                     System.out.println(String.format(Locale.US, "%.1f", currentRoomTemperature));
                 }
@@ -106,27 +115,32 @@ public class AtagOneApp {
                 if (configuration.getFormat() == FORMAT.CSV) {
 
                     // Convert flame status to 0 or 1 (boolean).
-                    final Boolean flameStatus = (Boolean) diagnostics.get(AtagOneConnectorInterface.VALUE_FLAME_STATUS);
-                    int newFlameStatus = flameStatus == null || !flameStatus ? 0 : 1;
+                    val flameStatus = diagnostics.get(VALUE_FLAME_STATUS);
+                    val newFlameStatus = Boolean.TRUE.equals(flameStatus) ? 1 : 0;
                     diagnostics.put("newFlameStatus", newFlameStatus);
 
                     // Instead of null, print string '-' for boiler heating for.
-                    final String boilerHeating = (String) diagnostics.get(AtagOneConnectorInterface.VALUE_BOILER_HEATING_FOR);
+                    val boilerHeating = diagnostics.get(VALUE_BOILER_HEATING_FOR);
                     diagnostics.put("newBoilerHeating", StringUtils.defaultString(boilerHeating, "-"));
 
                     // Print a list of CSV values.
                     printValues(diagnostics,
-                        AtagOneConnectorInterface.VALUE_ROOM_TEMPERATURE,
-                        AtagOneConnectorInterface.VALUE_OUTSIDE_TEMPERATURE,
-                        AtagOneConnectorInterface.VALUE_CH_WATER_PRESSURE,
-                        AtagOneConnectorInterface.VALUE_CH_WATER_TEMPERATURE,
-                        AtagOneConnectorInterface.VALUE_CH_RETURN_TEMPERATURE,
-                        AtagOneConnectorInterface.VALUE_TARGET_TEMPERATURE,
-                        AtagOneConnectorInterface.VALUE_CH_SETPOINT,
+                        VALUE_ROOM_TEMPERATURE,
+                        VALUE_OUTSIDE_TEMPERATURE,
+                        VALUE_CH_WATER_PRESSURE,
+                        VALUE_CH_WATER_TEMPERATURE,
+                        VALUE_CH_RETURN_TEMPERATURE,
+                        VALUE_TARGET_TEMPERATURE,
+                        VALUE_CH_SETPOINT,
                         "newFlameStatus",
                         "newBoilerHeating");
 
                 } else {
+                    // Convert Boolean to "On" "Off" Strings.
+                    if (diagnostics.containsKey(VALUE_FLAME_STATUS)) {
+                        diagnostics.put(VALUE_FLAME_STATUS, (Boolean) diagnostics.get(VALUE_FLAME_STATUS) ? "On" : "Off");
+                    }
+
                     // Print diagnostics as JSON and keep the sequence.
                     System.out.println(JSONUtils.toJSON(diagnostics));
                 }
@@ -145,25 +159,7 @@ public class AtagOneApp {
             System.err.println();
             System.exit(1);
 
-        } catch (AtagPageErrorException e) {
-            // Print human readable error message.
-            System.err.println(e.getMessage());
-            System.err.println();
-            System.exit(1);
-
-        } catch (AtagSearchErrorException e) {
-            // Print human readable error message.
-            System.err.println(e.getMessage());
-            System.err.println();
-            System.exit(1);
-
-        } catch (NotauthorizedException e) {
-            // Print human readable error message.
-            System.err.println(e.getMessage());
-            System.err.println();
-            System.exit(1);
-
-        } catch (AccessDeniedException e) {
+        } catch (AtagPageErrorException | AtagSearchErrorException | AccessDeniedException e) {
             // Print human readable error message.
             System.err.println(e.getMessage());
             System.err.println();
@@ -235,18 +231,18 @@ public class AtagOneApp {
             CommandLineParser parser = new DefaultParser();
             CommandLine cmd = parser.parse(options, args, true);
 
-            final String email = cmd.getOptionValue(OPTION_EMAIL);
-            final String password = cmd.getOptionValue(OPTION_PASSWORD);
-            final boolean debug = cmd.hasOption(OPTION_DEBUG);
-            final String output = cmd.getOptionValue(OPTION_OUTPUT);
-            final boolean hasTemperature = cmd.hasOption(OPTION_SET);
-            final String temperatureString = cmd.getOptionValue(OPTION_SET);
-            final boolean hasVersion = cmd.hasOption(OPTION_VERSION);
-            final boolean skipAuthRequest = cmd.hasOption(OPTION_SKIP_AUTH_REQUEST);
-            final boolean dump = cmd.hasOption(OPTION_DUMP);
-            final String mac = cmd.getOptionValue(OPTION_MAC);
+            val email = cmd.getOptionValue(OPTION_EMAIL);
+            val password = cmd.getOptionValue(OPTION_PASSWORD);
+            val debug = cmd.hasOption(OPTION_DEBUG);
+            val output = cmd.getOptionValue(OPTION_OUTPUT);
+            val hasTemperature = cmd.hasOption(OPTION_SET);
+            val temperatureString = cmd.getOptionValue(OPTION_SET);
+            val hasVersion = cmd.hasOption(OPTION_VERSION);
+            val skipAuthRequest = cmd.hasOption(OPTION_SKIP_AUTH_REQUEST);
+            val dump = cmd.hasOption(OPTION_DUMP);
+            val mac = cmd.getOptionValue(OPTION_MAC);
             // Remaining arguments
-            final String hostName = cmd.getArgs() != null && cmd.getArgs().length > 0 ? cmd.getArgs()[0] : null;
+            val hostName = cmd.getArgs() != null && cmd.getArgs().length > 0 ? cmd.getArgs()[0] : null;
 
             @Nullable
             BigDecimal temperature = null;

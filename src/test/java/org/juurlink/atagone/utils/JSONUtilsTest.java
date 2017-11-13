@@ -13,7 +13,7 @@ public class JSONUtilsTest {
 
 	@Test
 	public void testToJSON() {
-		Map<String, Object> testData = new LinkedHashMap<String, Object>();
+		Map<String, Object> testData = new LinkedHashMap<>();
 		testData.put("deviceId", "6808-1401-3109_15-30-001-544");
 		testData.put("latestReportTime", "2015-11-20 01:16:45");
 		testData.put("roomTemperature", new BigDecimal("20.4"));
@@ -36,7 +36,7 @@ public class JSONUtilsTest {
 	}
 
 	@Test
-	public void testGetJSONValueByName() throws Exception {
+	public void testGetJSONValueByName() {
 		String json = "{\"isHeating\":false,\"targetTemp\":17.0,\"currentTemp\":16.9,\"vacationPlanned\":false,\"currentMode\":\"manual\", \"errors\":\"\", \"errors2\" : \"whatever\" , \"errors3\" : \"whatever 2 \" }";
 		assertEquals(Boolean.FALSE, JSONUtils.getJSONValueByName(json, Boolean.class, "isHeating"));
 		assertEquals(new BigDecimal("17.0"), JSONUtils.getJSONValueByName(json, BigDecimal.class, "targetTemp"));

@@ -4,11 +4,11 @@ import org.junit.Before;
 
 public class AtagOneAppTest {
 
-	private AtagOneApp atagOneApp;
+    private AtagOneApp atagOneApp;
 
-	@Before
-	public void setUp() {
-		atagOneApp = new AtagOneApp();
-	}
+    @Before
+    public void setUp() {
+        atagOneApp = new AtagOneApp();
+    }
 
 }

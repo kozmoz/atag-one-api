@@ -3,9 +3,7 @@ package org.juurlink.atagone;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetAddress;
-import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -30,6 +28,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.java.Log;
+import lombok.val;
 
 /**
  * Connect to ATAG One thermostat in local network.
@@ -90,7 +89,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
     /**
      * When true, then skip the auth request during login.
      */
-    private boolean skipAuthRequest;
+    private final boolean skipAuthRequest;
 
     /**
      * Construct ATAG One connector.
@@ -120,11 +119,11 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         skipAuthRequest = configuration.isSkipAuthRequest();
 
         // Host-name for thermostat configured?
-        final String hostName = configuration.getHostName();
+        val hostName = configuration.getHostName();
         if (StringUtils.isNotBlank(hostName)) {
 
             // The host-name is set, so we can skip discovery during login process.
-            final InetAddress deviceAddress = InetAddress.getByName(hostName);
+            val deviceAddress = InetAddress.getByName(hostName);
             selectedDevice = AtagOneInfo.builder().deviceAddress(deviceAddress).build();
         }
 
@@ -193,13 +192,13 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
                     " (inclusive) and " + AtagOneApp.TEMPERATURE_MAX + " (inclusive)");
         }
 
-        final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/update";
+        val messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/update";
         log.fine("POST retrieve: URL=" + messageUrl);
 
         // Get computer MAC address.
-        final String macAddress = computerInfo.getMac();
+        val macAddress = computerInfo.getMac();
 
-        final String jsonPayload = "{\"update_message\":{" +
+        val jsonPayload = "{\"update_message\":{" +
             "\"seqnr\":0," +
             "\"account_auth\":{" +
             "\"user_account\":\"\"," +
@@ -207,11 +206,11 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
             "\"control\":{" +
             "\"ch_mode_temp\":" + roundedTemperature +
             "}}}\n";
-        String response = executeRequest(messageUrl, jsonPayload, versionInfo).getContent();
+        val response = executeRequest(messageUrl, jsonPayload, versionInfo).getContent();
 
         // Response:
         // { "update_reply":{ "seqnr":0,"status":{"device_id":"6808-1401-3109_15-30-001-123","device_status":16385,"connection_status":23,"date_time":503527795},"acc_status":2} }
-        final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
+        val accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
         assertAuthorized(accStatus);
 
         // Update Device ID?
@@ -241,15 +240,15 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
             throw new IllegalArgumentException("Cannot determine MAC address of computer, cannot get diagnostics.");
         }
 
-        final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/retrieve";
+        val messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/retrieve";
         log.fine("POST retrieve: URL=" + messageUrl);
 
         // Get computer MAC address.
-        final String macAddress = computerInfo.getMac();
+        val macAddress = computerInfo.getMac();
 
         // {"retrieve_message":{"seqnr":0,"account_auth":{"user_account":"email@gmail.com","mac_address":"6C:42:98:B6:B2:90"},"info":15}}
-        final int info = MESSAGE_INFO_CONTROL + MESSAGE_INFO_REPORT;
-        final String jsonPayload = "{\"retrieve_message\":{" +
+        val info = MESSAGE_INFO_CONTROL + MESSAGE_INFO_REPORT;
+        val jsonPayload = "{\"retrieve_message\":{" +
             "\"seqnr\":0," +
             "\"account_auth\":{" +
             "\"user_account\":\"\"," +
@@ -257,15 +256,15 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
             "\"info\":" + info + "}}\n";
 
         // Sometimes the response is empty, try multiple times.
-        final PageContent pageContent = executeRequest(messageUrl, jsonPayload, versionInfo);
-        final String response = pageContent.getContent();
+        val pageContent = executeRequest(messageUrl, jsonPayload, versionInfo);
+        val response = pageContent.getContent();
 
         // Try to get Atag ONE device version from response header.
-        final List<String> versionHeaders = pageContent.getHeaders().get("X-One-Ver");
-        final String atagOneVersion = versionHeaders != null && versionHeaders.size() > 0 ? versionHeaders.get(0) : "Unknown";
+        val versionHeaders = pageContent.getHeaders().get("X-One-Ver");
+        val atagOneVersion = versionHeaders != null && versionHeaders.size() > 0 ? versionHeaders.get(0) : "Unknown";
 
         // Test accStatus response.
-        final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
+        val accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
         assertAuthorized(accStatus);
 
 		/*
@@ -322,15 +321,14 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 		"acc_status":2} }
 		 */
 
-        Map<String, Object> values = new LinkedHashMap<>();
+        val values = new LinkedHashMap<String, Object>();
 
         values.put(VALUE_DEVICE_IP, selectedDevice.getDeviceAddress().getHostAddress());
         values.put(VALUE_DEVICE_ID, JSONUtils.getJSONValueByName(response, String.class, "device_id"));
         // VALUE_DEVICE_ALIAS; Locally unknown
-        final Integer reportTime = JSONUtils.getJSONValueByName(response, Integer.class, "report_time");
-
+        val reportTime = JSONUtils.getJSONValueByName(response, Integer.class, "report_time");
         if (reportTime != null) {
-            final LocalDateTime dateObject = CalendarUtils.toDateObject(reportTime);
+            val dateObject = CalendarUtils.toDateObject(reportTime);
             values.put(VALUE_LATEST_REPORT_TIME, CalendarUtils.formatDate(dateObject));
         }
         // VALUE_CONNECTED_TO
@@ -346,7 +344,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         values.put(VALUE_TARGET_TEMPERATURE, JSONUtils.getJSONValueByName(response, BigDecimal.class, "shown_set_temp"));
 
         // Values only local available.
-        final Integer boilerStatus = JSONUtils.getJSONValueByName(response, Integer.class, "boiler_status");
+        val boilerStatus = JSONUtils.getJSONValueByName(response, Integer.class, "boiler_status");
         values.put("deviceStatus", JSONUtils.getJSONValueByName(response, Integer.class, "device_status"));
         values.put("connectionStatus", JSONUtils.getJSONValueByName(response, Integer.class, "connection_status"));
         values.put("deviceErrors", JSONUtils.getJSONValueByName(response, String.class, "device_errors"));
@@ -379,7 +377,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
         // Get "flameStatus" from boilerStatus bit 3.
         if (boilerStatus != null) {
-            values.put("flameStatus", (boilerStatus & 8) == 8 ? "On" : "Off");
+            values.put(VALUE_FLAME_STATUS, (boilerStatus & 8) == 8 ? Boolean.TRUE : Boolean.FALSE);
         }
 
         values.put("atagOneVersion", atagOneVersion);
@@ -410,15 +408,20 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
             throw new IllegalArgumentException("Cannot determine MAC address of computer, cannot get dump.");
         }
 
-        final String messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/retrieve";
+        val messageUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/retrieve";
         log.fine("POST retrieve: URL=" + messageUrl);
 
         // Get computer MAC address.
-        final String macAddress = computerInfo.getMac();
+        val macAddress = computerInfo.getMac();
 
-        final int info = MESSAGE_INFO_CONTROL + MESSAGE_INFO_SCHEDULES + MESSAGE_INFO_CONFIGURATION + MESSAGE_INFO_REPORT + MESSAGE_INFO_STATUS +
-            MESSAGE_INFO_WIFISCAN + MESSAGE_INFO_EXTRA;
-        final String jsonPayload = "{\"retrieve_message\":{" +
+        val info = MESSAGE_INFO_CONTROL +
+            MESSAGE_INFO_SCHEDULES +
+            MESSAGE_INFO_CONFIGURATION +
+            MESSAGE_INFO_REPORT +
+            MESSAGE_INFO_STATUS +
+            MESSAGE_INFO_WIFISCAN +
+            MESSAGE_INFO_EXTRA;
+        val jsonPayload = "{\"retrieve_message\":{" +
             "\"seqnr\":0," +
             "\"account_auth\":{" +
             "\"user_account\":\"\"," +
@@ -426,10 +429,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
             "\"info\":" + info + "}}\n";
 
         // Sometimes the response is empty, try multiple times.
-        String response = executeRequest(messageUrl, jsonPayload, versionInfo).getContent();
+        val response = executeRequest(messageUrl, jsonPayload, versionInfo).getContent();
 
         // Test accStatus response.
-        final Integer accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
+        val accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
         assertAuthorized(accStatus);
 
         // Update Device ID?
@@ -448,11 +451,11 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
         log.fine("Try to find the " + AtagOneApp.THERMOSTAT_NAME + " in the local network for " + MAX_LISTEN_TIMEOUT_SECONDS + " seconds.");
 
-        final String messageTag = "ONE ";
+        val messageTag = "ONE ";
 
-        UdpMessage udpMessage = null;
+        UdpMessage udpMessage;
         int maxRetriesAfterTechnicalError = 3;
-        while (maxRetriesAfterTechnicalError > 0) {
+        while (true) {
             try {
                 udpMessage = NetworkUtils.getUdpBroadcastMessage(UDP_BROADCAST_PORT, MAX_LISTEN_TIMEOUT_SECONDS, messageTag);
 
@@ -473,9 +476,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
         if (udpMessage != null) {
             // We received a message that matches our tag.
-            String deviceId = udpMessage.getMessage().split(" ")[1];
-
-            final AtagOneInfo deviceFound = AtagOneInfo.builder()
+            val deviceId = udpMessage.getMessage().split(" ")[1];
+            val deviceFound = AtagOneInfo.builder()
                 .deviceAddress(udpMessage.getSenderAddress())
                 .deviceId(deviceId)
                 .build();
@@ -504,7 +506,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
             throw new IllegalArgumentException("Cannot determine MAC address of computer, authorization process cancelled.");
         }
 
-        final String pairUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/pair_message";
+        val pairUrl = "http://" + selectedDevice.getDeviceAddress().getHostAddress() + ":" + HTTP_CLIENT_PORT + "/pair_message";
         log.fine("POST pair_message: URL=" + pairUrl);
 
         // Get the local (short) hostname.
@@ -513,8 +515,8 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
             shortName = shortName.split("\\.")[0];
         }
 
-        String macAddress = computerInfo.getMac();
-        String deviceName = shortName + " " + AtagOneApp.EXECUTABLE_NAME + " API";
+        val macAddress = computerInfo.getMac();
+        val deviceName = shortName + " " + AtagOneApp.EXECUTABLE_NAME + " API";
 
         String jsonPayload = "{\"pair_message\":{\"seqnr\":0," +
             "\"account_auth\":{" +
@@ -536,7 +538,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         for (int i = 0; i < MAX_AUTH_RETRIES; i++) {
 
             // Sometimes the response is empty, try multiple times.
-            String response = executeRequest(pairUrl, jsonPayload, versionInfo).getContent();
+            val response = executeRequest(pairUrl, jsonPayload, versionInfo).getContent();
 
             accStatus = JSONUtils.getJSONValueByName(response, Integer.class, RESPONSE_ACC_STATUS);
             if (accStatus == null) {
@@ -572,7 +574,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
     protected PageContent executeRequest(final String url, final String jsonPayload, final Version versionInfo) throws IOException {
 
         // Create version string for header.
-        final String versionString = versionInfo != null ? versionInfo.toString() : "";
+        val versionString = versionInfo != null ? versionInfo.toString() : "";
 
         // Sometimes the response is empty, try multiple times.
         int maxRetries = 10;
@@ -616,8 +618,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
      * @throws NotauthorizedException When user did not approve authorization request
      * @throws AccessDeniedException  When user denied authorization request
      */
-    protected void assertAuthorized(@Nullable
-    final Integer accStatus) throws NotauthorizedException, AccessDeniedException {
+    protected void assertAuthorized(@Nullable final Integer accStatus) throws NotauthorizedException, AccessDeniedException {
 
         if (accStatus == null) {
             throw new IllegalStateException("Response '" + RESPONSE_ACC_STATUS + "' is null.");
@@ -649,7 +650,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
      */
     protected void updateSelectedDevice(final String response) {
         if (selectedDevice != null && StringUtils.isBlank(selectedDevice.getDeviceId())) {
-            String deviceId = JSONUtils.getJSONValueByName(response, String.class, "device_id");
+            val deviceId = JSONUtils.getJSONValueByName(response, String.class, "device_id");
             selectedDevice = AtagOneInfo.builder()
                 .deviceAddress(selectedDevice.getDeviceAddress())
                 .deviceId(deviceId)

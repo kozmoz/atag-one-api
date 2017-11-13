@@ -1,7 +1,6 @@
 package org.juurlink.atagone.utils;
 
 import java.text.Collator;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -43,8 +42,8 @@ public class StringUtils {
      * Return default string in case of null.
      */
     @Nonnull
-    public static String defaultString(@Nullable final String string, @Nonnull @NonNull final String defaultString) {
-        return string != null ? string : defaultString;
+    public static String defaultString(@Nullable final Object string, @Nonnull @NonNull final String defaultString) {
+        return string != null ? string.toString() : defaultString;
     }
 
     /**
@@ -58,6 +57,6 @@ public class StringUtils {
         // Ignore upper and lowercase.
         collator.setStrength(Collator.PRIMARY);
 
-        Collections.sort(stringList, collator);
+        stringList.sort(collator);
     }
 }
