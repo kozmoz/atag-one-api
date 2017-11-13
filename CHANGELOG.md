@@ -1,5 +1,16 @@
 # Change Log
 
+## [v1.4.4](https://github.com/kozmoz/atag-one-api/tree/v1.4.4) (2017-11-13)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.3...v1.4.4)
+
+**Implemented enhancements:**
+
+- Use Lombok's val keyword for local final variables [\#24](https://github.com/kozmoz/atag-one-api/issues/24)
+
+**Fixed bugs:**
+
+- Class cast exception [\#23](https://github.com/kozmoz/atag-one-api/issues/23)
+
 ## [v1.4.3](https://github.com/kozmoz/atag-one-api/tree/v1.4.3) (2017-11-06)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.2...v1.4.3)
 

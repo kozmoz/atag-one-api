@@ -15,7 +15,7 @@ Release process description
 - Create new release for new version
     - Edit .github_changelog_generator and update future version to new to release version
 	- Run ./generate_changelog.sh to update the auto generated changelog
-	- https://github.com/kozmoz/atag-one-api/releases
+	- Update Github release description from changelog - https://github.com/kozmoz/atag-one-api/releases
 
 - Close Milestone
 
