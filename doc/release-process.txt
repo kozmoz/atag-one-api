@@ -17,6 +17,8 @@ Release process description
 	- Run ./generate_changelog.sh to update the auto generated changelog
 	- Update Github release description from changelog - https://github.com/kozmoz/atag-one-api/releases
 
+- Git commit push
+
 - Close Milestone
 
 	
