@@ -1,5 +1,17 @@
 package org.juurlink.atagone.utils;
 
+import lombok.Builder;
+import lombok.NonNull;
+import lombok.Value;
+import lombok.experimental.UtilityClass;
+import lombok.extern.java.Log;
+import lombok.val;
+import org.juurlink.atagone.domain.DeviceInfo;
+import org.juurlink.atagone.domain.UdpMessage;
+import org.juurlink.atagone.exceptions.AtagPageErrorException;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,7 +29,7 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -27,20 +39,6 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.juurlink.atagone.domain.DeviceInfo;
-import org.juurlink.atagone.domain.UdpMessage;
-import org.juurlink.atagone.exceptions.AtagPageErrorException;
-
-import lombok.Builder;
-import lombok.NonNull;
-import lombok.Value;
-import lombok.experimental.UtilityClass;
-import lombok.extern.java.Log;
-import lombok.val;
 
 /**
  * HTTP related utility methods.
@@ -52,7 +50,6 @@ public class NetworkUtils {
     /**
      * Max number of connection retries. Sometimes a request result in "Connection Error: Unexpected end of file from server".
      */
-    private static final String ENCODING_UTF_8 = "UTF-8";
     private static final String USER_AGENT = "Mozilla/5.0 (compatible; AtagOneAPI/$0; http://atag.one/)";
     private static final String REQUEST_METHOD_POST = "POST";
     private static final String REQUEST_HEADER_CONTENT_TYPE = "Content-Type";
@@ -94,7 +91,7 @@ public class NetworkUtils {
     public static String getPageContent(final @NonNull String url, final @Nullable String versionString) throws IOException {
 
         // HTTP(S) Connect.
-        HttpURLConnection httpConnection = createHttpConnection(url, versionString);
+        HttpURLConnection httpConnection = post(url, versionString);
 
         return toPageResponse(httpConnection);
     }
@@ -109,26 +106,11 @@ public class NetworkUtils {
      * @throws IOException            in case of connection error
      * @throws AtagPageErrorException in case the page contains an error message
      */
-    public static String getPostPageContent(@NonNull String url, Map<String, String> parameters, String versionString) throws IOException {
+    public static String getPostPageContent(final @NonNull String url,
+                                            final @Nonnull @NonNull Map<String, String> parameters,
+                                            final @Nullable String versionString) throws IOException {
 
-        byte[] postData = createPostBody(parameters);
-
-        // HTTP(S) Connect.
-        HttpURLConnection httpConnection = createHttpConnection(url, versionString);
-        httpConnection.setDoOutput(true);
-        httpConnection.setRequestMethod(REQUEST_METHOD_POST);
-        httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded; " + ENCODING_UTF_8);
-        httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_LENGTH, "" + postData.length);
-
-        OutputStream outputStream = null;
-        try {
-            outputStream = httpConnection.getOutputStream();
-            outputStream.write(postData);
-        } finally {
-            IOUtils.closeQuietly(outputStream);
-        }
-
-        return toPageResponse(httpConnection);
+        return toPageResponse(post(url, createPostBody(parameters), versionString));
     }
 
     /**
@@ -142,35 +124,21 @@ public class NetworkUtils {
      * @throws AtagPageErrorException in case the page contains an error message
      */
     @Nonnull
-    public static PageContent getPostPageContent(final @NonNull String url, final @NonNull String json, final @Nullable String versionString)
-        throws IOException {
+    public static PageContent getPostPageContent(final @NonNull String url,
+                                                 final @NonNull String json,
+                                                 final @Nullable String versionString) throws IOException {
 
-        byte[] postData = json.getBytes(Charset.forName("UTF-8"));
-
-        // HTTP(S) Connect.
-        HttpURLConnection httpConnection = createHttpConnection(url, versionString);
-        httpConnection.setDoOutput(true);
-        httpConnection.setRequestMethod(REQUEST_METHOD_POST);
-        httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_TYPE, "application/json; " + ENCODING_UTF_8);
-        httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_LENGTH, "" + postData.length);
-
-        OutputStream outputStream = null;
-        try {
-            outputStream = httpConnection.getOutputStream();
-            outputStream.write(postData);
-
-        } finally {
-            IOUtils.closeQuietly(outputStream);
-        }
+        byte[] postData = json.getBytes(StandardCharsets.UTF_8);
+        HttpURLConnection httpConnection = post(url, postData, versionString);
 
         // Get raw page contents.
         final String content = toPageResponse(httpConnection);
 
         // Return both contents and headers.
         return PageContent.builder()
-            .content(content)
-            .headers(httpConnection.getHeaderFields())
-            .build();
+                .content(content)
+                .headers(httpConnection.getHeaderFields())
+                .build();
     }
 
     /**
@@ -197,10 +165,10 @@ public class NetworkUtils {
         String macAddress = formatHardwareAddress(mac);
 
         return DeviceInfo.builder()
-            .name(inetAddress.getHostName())
-            .ip(inetAddress)
-            .mac(macAddress)
-            .build();
+                .name(inetAddress.getHostName())
+                .ip(inetAddress)
+                .mac(macAddress)
+                .build();
     }
 
     /**
@@ -333,7 +301,7 @@ public class NetworkUtils {
 
         try {
             // Listen to all UDP packets to any interface to port 'port'.
-            datagramSocket = new DatagramSocket(port, InetAddress.getByName("0.0.0.0"));
+            datagramSocket = new DatagramSocket(port);
             datagramSocket.setBroadcast(true);
             datagramSocket.setSoTimeout(MAX_CONNECTION_TIMEOUT_MS);
 
@@ -347,14 +315,14 @@ public class NetworkUtils {
                 datagramSocket.receive(datagramPacket);
 
                 val senderAddress = datagramPacket.getAddress();
-                val receivedMessage = new String(datagramPacket.getData(), ENCODING_UTF_8);
+                val receivedMessage = new String(datagramPacket.getData(), StandardCharsets.UTF_8);
 
                 // Found message
                 if (receivedMessage.startsWith(messageTag)) {
                     return UdpMessage.builder()
-                        .senderAddress(senderAddress)
-                        .message(receivedMessage)
-                        .build();
+                            .senderAddress(senderAddress)
+                            .message(receivedMessage)
+                            .build();
                 }
             }
             return null;
@@ -387,12 +355,12 @@ public class NetworkUtils {
      */
     @Nonnull
     protected static String toPageResponse(@NonNull final HttpURLConnection httpConnection)
-        throws IOException {
+            throws IOException {
         InputStream inputStreamStd = null;
         InputStream inputStreamErr = null;
         try {
             inputStreamStd = httpConnection.getInputStream();
-            val html = IOUtils.toString(inputStreamStd, ENCODING_UTF_8);
+            val html = IOUtils.toString(inputStreamStd, StandardCharsets.UTF_8);
 
             // Does the page contain an error message?
             // (Only in case of HTML response.)
@@ -410,7 +378,7 @@ public class NetworkUtils {
             String errorResponse = null;
             try {
                 inputStreamErr = httpConnection.getErrorStream();
-                errorResponse = IOUtils.toString(inputStreamErr, ENCODING_UTF_8);
+                errorResponse = IOUtils.toString(inputStreamErr, StandardCharsets.UTF_8);
             } catch (IOException e2) {
                 // Ignore this error.
                 log.fine("Error reading error stream: " + e2);
@@ -431,18 +399,49 @@ public class NetworkUtils {
     }
 
     /**
+     * Create HTTP(s) connection, connect to it and post the payload data.
+     *
+     * @param urlString     URL to connect to
+     * @param versionString Optional version string, will be used in request header
+     * @param postData      Payload data to send
+     * @return the connection the response can be read from
+     * @throws IOException in case of connection error
+     */
+    @Nonnull
+    protected static HttpURLConnection post(final @NonNull String urlString,
+                                            final @NonNull byte[] postData,
+                                            final @Nullable String versionString) throws IOException {
+        // HTTP(S) Connect.
+        HttpURLConnection httpConnection = post(urlString, versionString);
+        httpConnection.setDoOutput(true);
+        httpConnection.setRequestMethod(REQUEST_METHOD_POST);
+        httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded; " + StandardCharsets.UTF_8);
+        httpConnection.setRequestProperty(REQUEST_HEADER_CONTENT_LENGTH, "" + postData.length);
+
+        OutputStream outputStream = null;
+        try {
+            outputStream = httpConnection.getOutputStream();
+            outputStream.write(postData);
+        } finally {
+            IOUtils.closeQuietly(outputStream);
+        }
+        return httpConnection;
+    }
+
+    /**
      * Create HTTP(s) connection.
      *
-     * @param urlString     URL to connect to.
+     * @param urlString     URL to connect to
      * @param versionString Optional version string, will be used in request header
      * @throws IOException in case of connection error
      */
-    protected static HttpURLConnection createHttpConnection(final String urlString, final @Nullable String versionString) throws IOException {
+    protected static HttpURLConnection post(final @NonNull String urlString,
+                                            final @Nullable String versionString) throws IOException {
         val httpConnection = (HttpURLConnection) new URL(urlString).openConnection();
 
         // Complete list of HTTP header fields:
         // https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
-        httpConnection.setRequestProperty(REQUEST_HEADER_ACCEPT_CHARSET, ENCODING_UTF_8);
+        httpConnection.setRequestProperty(REQUEST_HEADER_ACCEPT_CHARSET, StandardCharsets.UTF_8.name());
         httpConnection.setRequestProperty(REQUEST_HEADER_ACCEPT, "*/*");
         if (versionString != null) {
             httpConnection.setRequestProperty(REQUEST_HEADER_USER_AGENT, USER_AGENT.replace("$0", versionString));
@@ -476,7 +475,7 @@ public class NetworkUtils {
     /**
      * Create UTF-8 URL encoded POST body.
      */
-    protected static byte[] createPostBody(final Map<String, String> parameters) throws UnsupportedEncodingException {
+    protected static byte[] createPostBody(final @Nonnull @NonNull Map<String, String> parameters) throws UnsupportedEncodingException {
         // Create POST request payload.
         val urlParams = new StringBuilder();
         for (Entry<String, String> stringStringEntry : parameters.entrySet()) {
@@ -485,9 +484,9 @@ public class NetworkUtils {
             }
             urlParams.append(stringStringEntry.getKey());
             urlParams.append("=");
-            urlParams.append(URLEncoder.encode(stringStringEntry.getValue(), ENCODING_UTF_8));
+            urlParams.append(URLEncoder.encode(stringStringEntry.getValue(), StandardCharsets.UTF_8.name()));
         }
-        return urlParams.toString().getBytes(ENCODING_UTF_8);
+        return urlParams.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     @Value
