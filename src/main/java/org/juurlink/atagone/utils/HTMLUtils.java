@@ -1,14 +1,13 @@
 package org.juurlink.atagone.utils;
 
-import java.math.BigDecimal;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
+import java.math.BigDecimal;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * HTML related utility methods.
@@ -31,7 +30,9 @@ public class HTMLUtils {
      * @throws IllegalStateException When requested value class not supported
      */
     @Nullable
-    public static <T> T getValueByLabel(@Nonnull @NonNull final String html, @Nonnull @NonNull final Class<T> clazz, final String... labels) {
+    public static <T> T getValueByLabel(@Nonnull @NonNull final String html,
+                                        @Nonnull @NonNull final Class<T> clazz,
+                                        final String... labels) {
 
         // HTML structure of values in page.
         //     <label class="col-xs-6 control-label">Apparaat alias</label>

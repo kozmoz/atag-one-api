@@ -1,30 +1,30 @@
 package org.juurlink.atagone.utils;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class IOUtilsTest {
 
 	@Test
 	public void testToString() throws Exception {
-		final byte[] bytes = "TEST".getBytes("UTF-8");
+		final byte[] bytes = "TEST".getBytes(StandardCharsets.UTF_8);
 		ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
-		assertEquals("TEST", IOUtils.toString(stream, "UTF-8"));
+		assertEquals("TEST", IOUtils.toString(stream, StandardCharsets.UTF_8));
 	}
 
 	@Test
 	public void testToString_Null() throws Exception {
-		assertEquals("", IOUtils.toString(null, "UTF-8"));
+		assertEquals("", IOUtils.toString(null, StandardCharsets.UTF_8));
 	}
 
-	@Test(expected = UnsupportedEncodingException.class)
-	public void testToString_Illegal_Charset() throws Exception {
-		final byte[] bytes = "TEST".getBytes("UTF-8");
+	@Test(expected = NullPointerException.class)
+	public void testToString_Null_Charset() throws Exception {
+		final byte[] bytes = "TEST".getBytes(StandardCharsets.UTF_8);
 		ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
-		assertEquals("", IOUtils.toString(stream, "Whatever"));
+		assertEquals("", IOUtils.toString(stream, null));
 	}
 }

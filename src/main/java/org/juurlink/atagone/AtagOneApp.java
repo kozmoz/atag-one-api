@@ -1,33 +1,8 @@
 package org.juurlink.atagone;
 
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_BOILER_HEATING_FOR;
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_RETURN_TEMPERATURE;
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_SETPOINT;
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_WATER_PRESSURE;
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_WATER_TEMPERATURE;
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_FLAME_STATUS;
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_OUTSIDE_TEMPERATURE;
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_ROOM_TEMPERATURE;
-import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_TARGET_TEMPERATURE;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.math.BigDecimal;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Map;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import lombok.NonNull;
+import lombok.extern.java.Log;
+import lombok.val;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -43,9 +18,32 @@ import org.juurlink.atagone.exceptions.AtagSearchErrorException;
 import org.juurlink.atagone.utils.JSONUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
-import lombok.NonNull;
-import lombok.extern.java.Log;
-import lombok.val;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Map;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_BOILER_HEATING_FOR;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_RETURN_TEMPERATURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_SETPOINT;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_WATER_PRESSURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_CH_WATER_TEMPERATURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_FLAME_STATUS;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_OUTSIDE_TEMPERATURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_ROOM_TEMPERATURE;
+import static org.juurlink.atagone.AtagOneConnectorInterface.VALUE_TARGET_TEMPERATURE;
 
 /**
  * ATAG ONE Portal API.
@@ -78,7 +76,7 @@ public class AtagOneApp {
     /**
      * Application start point.
      */
-    public static void main(String[] args) {
+    public static void main(final @Nonnull @NonNull String[] args) {
 
         // Determine what to do.
         val versionInfo = getVersionInfo();
@@ -209,7 +207,8 @@ public class AtagOneApp {
      * @param args Command line arguments
      * @return Configuration object with username, password and other settings
      */
-    protected static Configuration validateAndParseCommandLine(final String[] args, final @Nonnull @NonNull Version versionInfo) {
+    protected static Configuration validateAndParseCommandLine(final @Nonnull @NonNull String[] args,
+                                                               final @Nonnull @NonNull Version versionInfo) {
 
         Options options = new Options();
         options.addOption("e", OPTION_EMAIL, true,

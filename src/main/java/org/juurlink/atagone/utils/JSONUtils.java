@@ -1,18 +1,17 @@
 package org.juurlink.atagone.utils;
 
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
+import lombok.extern.java.Log;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
-import lombok.extern.java.Log;
 
 /**
  * JSON utils.
@@ -62,8 +61,9 @@ public class JSONUtils {
      * @throws IllegalStateException When requested value class not supported
      */
     @Nullable
-    public static <T> T getJSONValueByName(@Nonnull @NonNull final String json, @Nonnull @NonNull final Class<T> clazz,
-        @Nonnull @NonNull final String name) {
+    public static <T> T getJSONValueByName(@Nonnull @NonNull final String json,
+                                           @Nonnull @NonNull final Class<T> clazz,
+                                           @Nonnull @NonNull final String name) {
 
         // Real world JSON example.
         // {"isHeating":false,"targetTemp":"17.0","currentTemp":"16.9","vacationPlanned":false,"currentMode":"manual"}

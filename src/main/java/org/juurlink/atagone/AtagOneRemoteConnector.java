@@ -1,15 +1,8 @@
 package org.juurlink.atagone;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import lombok.NonNull;
+import lombok.extern.java.Log;
+import lombok.val;
 import org.juurlink.atagone.domain.Configuration;
 import org.juurlink.atagone.domain.PortalCredentials;
 import org.juurlink.atagone.utils.HTMLUtils;
@@ -18,9 +11,14 @@ import org.juurlink.atagone.utils.NetworkUtils;
 import org.juurlink.atagone.utils.NumberUtils;
 import org.juurlink.atagone.utils.StringUtils;
 
-import lombok.NonNull;
-import lombok.extern.java.Log;
-import lombok.val;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Connect to ATAG One thermostat through ATAG One (internet) portal.
@@ -64,8 +62,11 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
 
     /**
      * Login ATAG ONE portal and select first Device found.
+     *
+     * @throws IOException in case connecting to remote device failed
+     * @throws IllegalStateException in case connecting succeeded but no device is found
      */
-    public void login() throws IOException {
+    public void login() throws IOException, IllegalStateException {
 
         log.fine("Login at " + THERMOSTAT_NAME + " portal.");
         if (StringUtils.isBlank(portalCredentials.getEmailAddress()) || StringUtils.isBlank(portalCredentials.getPassword())) {
