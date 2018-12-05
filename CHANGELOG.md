@@ -1,5 +1,15 @@
 # Change Log
 
+## [v1.4.5](https://github.com/kozmoz/atag-one-api/tree/v1.4.5) (2018-12-05)
+[Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.4...v1.4.5)
+
+**Closed issues:**
+
+- BindException: Address already in use: Cannot bind [\#30](https://github.com/kozmoz/atag-one-api/issues/30)
+- Socket timeout error [\#27](https://github.com/kozmoz/atag-one-api/issues/27)
+- Change Request  time and date [\#26](https://github.com/kozmoz/atag-one-api/issues/26)
+- Add possibility to set "setpoint" temperature [\#21](https://github.com/kozmoz/atag-one-api/issues/21)
+
 ## [v1.4.4](https://github.com/kozmoz/atag-one-api/tree/v1.4.4) (2017-11-13)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.3...v1.4.4)
 

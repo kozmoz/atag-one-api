@@ -93,3 +93,5 @@ Session.vim
 
 # Created by .ignore support plugin (hsz.mobi)
 /target/
+
+.github_changelog_generator

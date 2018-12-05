@@ -6,7 +6,7 @@
 
     <groupId>org.juurlink</groupId>
     <artifactId>atag-one</artifactId>
-    <version>1.4.5-SNAPSHOT</version>
+    <version>1.4.5</version>
 
     <dependencies>
 
