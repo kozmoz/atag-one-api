@@ -3,11 +3,11 @@
 
 Get diagnostic data from your ATAG One thermostat with just one simple command.
 
-A typical message looks like this:
+A typical response message looks like this:
 
     {
         "deviceId": "6808-1401-3109_15-30-001-123",
-        "latestReportTime": "2015-12-15 12:10:04",
+        "latestReportTime": "2019-01-26 13:20:04",
         "connectedTo": "BCU",
         "burningHours": 41.4,
         "boilerHeatingFor": "-",
@@ -27,12 +27,15 @@ A typical message looks like this:
 ### Modes of Operation
 
 atag-one.jar has two modes of operation; _Local_ and _Remote_.  
-When in local mode, it connects directly to the thermostat in the local network. 
-When in remote mode, it connects to the ATAG One portal.
+
+* Local mode; it connects directly to the thermostat within the local network. 
+* Remote mode; it connects to the ATAG One portal.
 
 ### Local Mode
 
-Connect to the ATAG One thermostat on your local network and get diagnostic data: 
+Some examples. To execute these examples, it expects the _java_ executable to be available in the classpath.   
+
+Find the ATAG One thermostat within your local network, connect to it and output brief diagnostic data: 
 
     $ java -jar atag-one.jar
 
@@ -58,7 +61,7 @@ Set the target room temperature to 20.5 degrees celsius via the ATAG One interne
 
 All of the trademarks used are the property of their respective owners. 
 
-This project is not affiliated with Atag, the manufacturer of the ATAG One thermostat.
+This project is not affiliated with Atag, the manufacturer of the ATAG One thermostat, in any way.
  
 The software is provided "as is", without warranty of any kind.
 
