@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.4.6
+**Fixed bugs:**
+
+- Report time is one day off - update of fix [\#16](https://github.com/kozmoz/atag-one-api/issues/16)
+
 ## [v1.4.5](https://github.com/kozmoz/atag-one-api/tree/v1.4.5) (2018-12-05)
 [Full Changelog](https://github.com/kozmoz/atag-one-api/compare/v1.4.4...v1.4.5)
 
