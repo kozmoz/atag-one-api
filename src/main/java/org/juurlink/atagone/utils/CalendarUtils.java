@@ -1,15 +1,14 @@
 package org.juurlink.atagone.utils;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.TimeZone;
-
-import javax.annotation.Nonnull;
-
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import javax.annotation.Nonnull;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 
 /**
  * Date related utility methods.
@@ -17,17 +16,18 @@ import lombok.val;
 @UtilityClass
 public class CalendarUtils {
 
+    private static final long EPOCH_SECONDS_SINCE_20000101 = 946684800L;
+    private static final long ONE_SECOND_IN_MILLISECONDS = 1000L;
+
     /**
-     * Convert ATAG One date to Java date Object.
+     * Convert ATAG One date to Java date-time object (without timezone info).
      *
-     * @return Date object
+     * @return DateTime object
      */
     @Nonnull
     public static LocalDateTime toDateObject(final long atagOneDate) {
-        val timeZone = TimeZone.getDefault();
-        val offset = timeZone.getOffset(atagOneDate * 1000);
-        val ofEpoch = LocalDateTime.ofEpochSecond(atagOneDate, 0, ZoneOffset.ofTotalSeconds(offset / 1000));
-        return ofEpoch.plusYears(30).minusDays(1);
+        val dateWithTimeZone = new Date((atagOneDate + EPOCH_SECONDS_SINCE_20000101) * ONE_SECOND_IN_MILLISECONDS);
+        return LocalDateTime.ofInstant(dateWithTimeZone.toInstant(), ZoneId.systemDefault());
     }
 
     /**
