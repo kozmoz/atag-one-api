@@ -1,11 +1,11 @@
 package org.juurlink.atagone.utils;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 import java.time.LocalDateTime;
 import java.time.Month;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class CalendarUtilsTest {
 
@@ -14,7 +14,7 @@ public class CalendarUtilsTest {
         final long date = 503187998L;
         final LocalDateTime dateObject = CalendarUtils.toDateObject(date);
         final String actual = CalendarUtils.formatDate(dateObject);
-        assertEquals("2015-12-10 23:26:38", actual);
+        assertEquals("2015-12-11 23:26:38", actual);
     }
 
     @Test
@@ -23,6 +23,14 @@ public class CalendarUtilsTest {
         final LocalDateTime dateObject = CalendarUtils.toDateObject(date);
         final String actual = CalendarUtils.formatDate(dateObject);
         assertEquals("2017-11-19 15:24:13", actual);
+    }
+
+    @Test
+    public void testToDateObject3() {
+        final long date = 606946767L;
+        final LocalDateTime dateObject = CalendarUtils.toDateObject(date);
+        final String actual = CalendarUtils.formatDate(dateObject);
+        assertEquals("2019-03-26 21:19:27", actual);
     }
 
     @Test
