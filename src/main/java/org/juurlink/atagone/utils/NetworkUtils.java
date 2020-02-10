@@ -16,25 +16,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.CookiePolicy;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.HttpURLConnection;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -203,11 +187,9 @@ public class NetworkUtils {
         val localHost = new ArrayList<InetAddress>();
 
         try {
-            localHost.clear();
-
             val addresses = new HashMap<String, InetAddress>();
             val iFaces = NetworkInterface.getNetworkInterfaces();
-            for (; iFaces.hasMoreElements(); ) {
+            while (iFaces.hasMoreElements()) {
 
                 val iface = iFaces.nextElement();
 
@@ -223,8 +205,8 @@ public class NetworkUtils {
                     continue;
                 }
 
-                for (Enumeration ips = iface.getInetAddresses(); ips.hasMoreElements(); ) {
-                    val ip = (InetAddress) ips.nextElement();
+                for (Enumeration<InetAddress> ips = iface.getInetAddresses(); ips.hasMoreElements(); ) {
+                    val ip = ips.nextElement();
                     if (ip instanceof Inet4Address) {
 
                         // Ignore localhost, self-assigned and BlueTooth (which is probably from the 172.29.0.0/16 network).

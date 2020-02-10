@@ -28,8 +28,8 @@ A typical response message looks like this:
 
 atag-one.jar has two modes of operation; _Local_ and _Remote_.  
 
-* Local mode; it connects directly to the thermostat within the local network. 
-* Remote mode; it connects to the ATAG One portal.
+* In local mode; it connects directly to the thermostat within the local network. 
+* In remote mode; it connects to the ATAG One portal.
 
 ### Local Mode
 
@@ -59,7 +59,7 @@ Set the target room temperature to 20.5 degrees celsius via the ATAG One interne
 
 ## Disclaimer
 
-All of the trademarks used are the property of their respective owners. 
+All the trademarks used are the property of their respective owners. 
 
 This project is not affiliated with Atag, the manufacturer of the ATAG One thermostat, in any way.
  

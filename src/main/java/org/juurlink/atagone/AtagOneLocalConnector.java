@@ -1,34 +1,24 @@
 package org.juurlink.atagone;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.net.InetAddress;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.juurlink.atagone.domain.AtagOneInfo;
-import org.juurlink.atagone.domain.Configuration;
-import org.juurlink.atagone.domain.DeviceInfo;
-import org.juurlink.atagone.domain.UdpMessage;
-import org.juurlink.atagone.domain.Version;
-import org.juurlink.atagone.exceptions.AccessDeniedException;
-import org.juurlink.atagone.exceptions.AtagSearchErrorException;
-import org.juurlink.atagone.exceptions.NotauthorizedException;
-import org.juurlink.atagone.utils.CalendarUtils;
-import org.juurlink.atagone.utils.JSONUtils;
-import org.juurlink.atagone.utils.NetworkUtils;
-import org.juurlink.atagone.utils.NetworkUtils.PageContent;
-import org.juurlink.atagone.utils.NumberUtils;
-import org.juurlink.atagone.utils.StringUtils;
-
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.java.Log;
 import lombok.val;
+import org.juurlink.atagone.domain.*;
+import org.juurlink.atagone.exceptions.AccessDeniedException;
+import org.juurlink.atagone.exceptions.AtagSearchErrorException;
+import org.juurlink.atagone.exceptions.NotauthorizedException;
+import org.juurlink.atagone.utils.*;
+import org.juurlink.atagone.utils.NetworkUtils.PageContent;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.InetAddress;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Connect to ATAG One thermostat in local network.
@@ -54,7 +44,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
     private static final int MESSAGE_INFO_REPORT = 8;
     private static final int MESSAGE_INFO_STATUS = 16;
     private static final int MESSAGE_INFO_WIFISCAN = 32;
-    private static final int MESSAGE_INFO_EXTRA = 64;
+    private static final int MESSAGE_INFO_REPORT_DETAILS = 64;
 
     /**
      * UDP port the thermostat sends its messages to.
@@ -415,18 +405,18 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
         val macAddress = computerInfo.getMac();
 
         val info = MESSAGE_INFO_CONTROL +
-            MESSAGE_INFO_SCHEDULES +
-            MESSAGE_INFO_CONFIGURATION +
-            MESSAGE_INFO_REPORT +
-            MESSAGE_INFO_STATUS +
-            MESSAGE_INFO_WIFISCAN +
-            MESSAGE_INFO_EXTRA;
+                MESSAGE_INFO_SCHEDULES +
+                MESSAGE_INFO_CONFIGURATION +
+                MESSAGE_INFO_REPORT +
+                MESSAGE_INFO_STATUS +
+                MESSAGE_INFO_WIFISCAN +
+                MESSAGE_INFO_REPORT_DETAILS;
         val jsonPayload = "{\"retrieve_message\":{" +
-            "\"seqnr\":0," +
-            "\"account_auth\":{" +
-            "\"user_account\":\"\"," +
-            "\"mac_address\":\"" + macAddress + "\"}," +
-            "\"info\":" + info + "}}\n";
+                "\"seqnr\":0," +
+                "\"account_auth\":{" +
+                "\"user_account\":\"\"," +
+                "\"mac_address\":\"" + macAddress + "\"}," +
+                "\"info\":" + info + "}}\n";
 
         // Sometimes the response is empty, try multiple times.
         val response = executeRequest(messageUrl, jsonPayload, versionInfo).getContent();

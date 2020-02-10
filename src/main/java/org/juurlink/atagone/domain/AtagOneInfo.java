@@ -1,15 +1,14 @@
 package org.juurlink.atagone.domain;
 
-import java.net.InetAddress;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import lombok.Builder;
 import lombok.Value;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.net.InetAddress;
+
 /**
- * ATAG One device id and ip address
+ * ATAG One device id and ip address.
  */
 @Value
 @Builder
