@@ -47,6 +47,10 @@ Connect to thermostat at IP 10.0.1.12, skip authorization proces and set target 
 
     $ java -jar atag-one.jar --set 20.5 --skip-auth-request 10.0.1.12
 
+Connect to thermostat and dump all the available info:
+
+    $ java -jar atag-one.jar --dump
+
 ### Remote Mode
 
 Get diagnostic data via the ATAG One internet portal:
