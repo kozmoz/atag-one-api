@@ -3,6 +3,8 @@
 
 Get diagnostic data from your ATAG One thermostat with just one simple command.
 
+_** Update 2020-05-20: The ATAG Zone is not supported!**_
+
 A typical response message looks like this:
 
     {
