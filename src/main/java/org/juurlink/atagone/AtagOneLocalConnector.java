@@ -10,7 +10,7 @@ import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
 import org.juurlink.atagone.exceptions.NotauthorizedException;
 import org.juurlink.atagone.utils.*;
-import org.juurlink.atagone.utils.NetworkUtils.PageContent;
+import org.juurlink.atagone.utils.PageContent;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

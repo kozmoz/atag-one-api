@@ -1,8 +1,6 @@
 package org.juurlink.atagone.utils;
 
-import lombok.Builder;
 import lombok.NonNull;
-import lombok.Value;
 import lombok.experimental.UtilityClass;
 import lombok.extern.java.Log;
 import lombok.val;
@@ -471,10 +469,4 @@ public class NetworkUtils {
         return urlParams.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    @Value
-    @Builder
-    public class PageContent {
-        private Map<String, List<String>> headers;
-        private String content;
-    }
 }
