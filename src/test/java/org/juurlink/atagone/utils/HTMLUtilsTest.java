@@ -1,11 +1,10 @@
 package org.juurlink.atagone.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.math.BigDecimal;
 
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class HTMLUtilsTest {
 
@@ -44,13 +43,13 @@ public class HTMLUtilsTest {
 			"                </div>\n" +
 			"            </div>\n" +
 			"<div class=\"form-group\"><label class=\"col-xs-6 control-label\">Outside temperature</label>\n" +
-			"            <div class=\"col-xs-6\"><p class=\"form-control-static\">12.0&#176;                    </p></div>\n" +
+			"            <div class=\"col-xs-6\"><p class=\"form-control-static\">12.5&#176;                    </p></div>\n" +
 			"        </div>\n" +
 			"        <div class=\"form-group\"><label class=\"col-xs-6 control-label\">DHW setpoint</label>\n" +
 			"            <div class=\"col-xs-6\"><p class=\"form-control-static\">60.0&#176;</p></div>\n" +
 			"        </div>";
 
-		Object actual = HTMLUtils.getValueByLabel(html, String.class, "Apparaat alias");
+		Object actual = HTMLUtils.getValueByLabel(html, String.class, "Apparaat alias", "");
 		assertEquals("CV-ketel", actual);
 
 		actual = HTMLUtils.getValueByLabel(html, String.class, "apparaat Alias");
@@ -72,7 +71,119 @@ public class HTMLUtilsTest {
 
 		actual = HTMLUtils.getValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature");
 		assertEquals(BigDecimal.class, actual.getClass());
-		assertEquals("12.0", actual.toString());
+		assertEquals("12.5", actual.toString());
+	}
+
+	@Test
+	@SuppressWarnings("ConstantConditions")
+    public void testGetDiagnosticValueByLabelNegativeTemperature() {
+		final String html = "" +
+				"<fieldset>\n" +
+				"        <legend>DIAGNOSTICS</legend>\n" +
+				"            <div class=\"form-group no-border-top\">\n" +
+				"                <label class=\"col-xs-6 control-label\">Latest report time</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">2022-12-13 16:34:16</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">Burning hours</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">9205.95</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">Room temperature</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">20.1</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group no-border-top\">\n" +
+				"                <div class=\"col-xs-12\">&nbsp;</div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group no-border-top\">\n" +
+				"                <label class=\"col-xs-6 control-label\">Boiler heating for</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">Flame status</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                            <p class=\"form-control-static\">Off</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">CH setpoint</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">40.3°</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">CH water temperature</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">46.6°</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">CH return temperature</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">46.6°</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">dT</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">0.0°</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">CH water pressure</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">1.6</p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"            <div class=\"form-group\">\n" +
+				"                <label class=\"col-xs-6 control-label\">Outside temperature</label>\n" +
+				"                <div class=\"col-xs-6\">\n" +
+				"                    <p class=\"form-control-static\">\n" +
+				"-2.1°                    </p>\n" +
+				"                </div>\n" +
+				"            </div>\n" +
+				"                <div class=\"form-group\">\n" +
+				"                    <label class=\"col-xs-6 control-label\">Average outside temperature</label>\n" +
+				"                    <div class=\"col-xs-6\">\n" +
+				"                        <p class=\"form-control-static\">\n" +
+				"-2.0°                        </p>\n" +
+				"                    </div>\n" +
+				"                </div>\n" +
+				"        <div class=\"form-group\">\n" +
+				"            <label class=\"col-xs-6 control-label\">DHW setpoint</label>\n" +
+				"            <div class=\"col-xs-6\">\n" +
+				"                <p class=\"form-control-static\">43.0°</p>\n" +
+				"            </div>\n" +
+				"        </div>\n" +
+				"        <div class=\"form-group\">\n" +
+				"            <label class=\"col-xs-6 control-label\">DHW water temperature</label>\n" +
+				"            <div class=\"col-xs-6\">\n" +
+				"                <p class=\"form-control-static\">47.5°</p>\n" +
+				"            </div>\n" +
+				"        </div>\n" +
+				"    </fieldset>";
+
+		Object actual = HTMLUtils.getValueByLabel(html, String.class, "Laatste rapportagetijd", "Latest report time");
+		assertEquals("2022-12-13 16:34:16", actual);
+
+		actual = HTMLUtils.getValueByLabel(html, BigDecimal.class, "Branduren", "Burning hours");
+		assertEquals(BigDecimal.class, actual.getClass());
+		assertEquals("9205.95", actual.toString());
+
+		actual = HTMLUtils.getValueByLabel(html, Boolean.class, "Brander status", "Flame status");
+		assertEquals(Boolean.class, actual.getClass());
+		assertFalse((Boolean) actual);
+
+		actual = HTMLUtils.getValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature");
+		assertEquals(BigDecimal.class, actual.getClass());
+		assertEquals("-2.1", actual.toString());
 	}
 
 	@Test

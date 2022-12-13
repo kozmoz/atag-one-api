@@ -10,12 +10,10 @@ Release process description
 	- Set version in pom.xml (without the -SNAPSHOT, - eg 1.4.3)
 	- Make new Maven build
 	- Update version to next snapshot version - eg 1.4.4-SNAPHOT
-	- Upload binary from target folder to github releases page
+	- Upload binary from target folder to GitHub releases page
 
 - Create new release for new version
-    - Edit .github_changelog_generator and update future version to new to release version
-	- Run ./generate_changelog.sh to update the auto generated changelog
-	- Update Github release description from changelog - https://github.com/kozmoz/atag-one-api/releases
+	- Update GitHub release description from changelog - https://github.com/kozmoz/atag-one-api/releases
 
 - Git commit push
 

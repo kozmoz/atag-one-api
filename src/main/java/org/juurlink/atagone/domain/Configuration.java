@@ -26,53 +26,53 @@ public class Configuration {
      * Email address of Atag Portal account.
      */
     @Nullable
-    private String email;
+    String email;
 
     /**
      * Password of Atag Portal account.
      */
     @Nullable
-    private String password;
+    String password;
 
     /**
      * Debug logging.
      */
-    private boolean debug;
+    boolean debug;
 
     /**
      * Output format; CSV or JSON.
      */
     @Nullable
-    private FORMAT format;
+    FORMAT format;
 
     /**
      * Host-name of local thermostat.
      */
     @Nullable
-    private String hostName;
+    String hostName;
 
     /**
      * Skip request for authorization.
      */
-    private boolean skipAuthRequest;
+    boolean skipAuthRequest;
 
     /**
      * When true, dump the complete response from the thermostat.
      */
-    private boolean dump;
+    boolean dump;
 
     /**
      * Option to override mac address for authentication.
      */
     @Nullable
-    private String mac;
+    String mac;
 
     /**
      * API library version.
      * (Used for HTTP request header).
      */
     @Nullable
-    private Version version;
+    Version version;
 
     /**
      * When no portal email address given, we presume local operation.

@@ -73,7 +73,7 @@ public class JSONUtils {
         // http://stackoverflow.com/questions/11769555/java-regular-expression-to-match-a-backslash-followed-by-a-quote
         Pattern pattern;
         if (clazz == String.class) {
-            // String value has quotes arount the value.
+            // String value has quotes around the value.
             pattern = Pattern
                 .compile("(?:\"|\\\\\"|)" + escapedName + "(?:\"|\\\\\"|)\\s*:\\s*((?:\"|\\\\\").*?(?:\"|\\\\\"))[,}\\s]", Pattern.DOTALL);
         } else {
