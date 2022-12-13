@@ -14,9 +14,9 @@ import lombok.Value;
 @Builder
 public class DeviceInfo {
     @Nonnull
-    private String name;
+    String name;
     @Nonnull
-    private InetAddress ip;
+    InetAddress ip;
     @Nonnull
-    private String mac;
+    String mac;
 }

@@ -14,10 +14,10 @@ import java.net.InetAddress;
 @Builder
 public class AtagOneInfo {
     @Nonnull
-    private InetAddress deviceAddress;
+    InetAddress deviceAddress;
     /**
      * Not required for local communication.
      */
     @Nullable
-    private String deviceId;
+    String deviceId;
 }

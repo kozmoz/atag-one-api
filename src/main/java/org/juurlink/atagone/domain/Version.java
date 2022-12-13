@@ -12,11 +12,11 @@ import lombok.Value;
 @Builder
 public class Version {
     @Nonnull
-    private String version;
+    String version;
     @Nonnull
-    private String timestamp;
+    String timestamp;
 
     public String toString() {
-        return version + "(" + timestamp + ")";
+        return String.format("%s(%s)", version, timestamp);
     }
 }

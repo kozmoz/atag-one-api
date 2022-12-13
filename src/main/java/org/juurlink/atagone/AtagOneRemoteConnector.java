@@ -42,7 +42,7 @@ public class AtagOneRemoteConnector implements AtagOneConnectorInterface {
     /**
      * ATAG One device ID.
      */
-    @NonNull
+    @Nullable
     private String selectedDeviceId;
 
     /**

@@ -27,12 +27,13 @@ import java.util.regex.Pattern;
  */
 @Log
 @UtilityClass
+@SuppressWarnings("ProtectedMemberInFinalClass")
 public class NetworkUtils {
 
     /**
      * Max number of connection retries. Sometimes a request result in "Connection Error: Unexpected end of file from server".
      */
-    private static final String USER_AGENT = "Mozilla/5.0 (compatible; AtagOneAPI/$0; http://atag.one/)";
+    private static final String USER_AGENT = "Mozilla/5.0 (compatible; AtagOneAPI/$0; https://atag.one/)";
     private static final String REQUEST_METHOD_POST = "POST";
     private static final String REQUEST_HEADER_CONTENT_TYPE = "Content-Type";
     private static final String REQUEST_HEADER_CONTENT_LENGTH = "Content-Length";
@@ -232,8 +233,8 @@ public class NetworkUtils {
 
             } else if (addresses.size() > 1) {
 
-                // More then one address found, order list bij name (eth0 will be on top, above eth1).
-                val interfaceNames = new ArrayList<String>(addresses.keySet());
+                // More than one address found, order list bij name (eth0 will be on top, above eth1).
+                val interfaceNames = new ArrayList<>(addresses.keySet());
                 StringUtils.sort(interfaceNames);
 
                 for (String interfaceName : interfaceNames) {
@@ -277,7 +278,7 @@ public class NetworkUtils {
         }
 
         DatagramSocket datagramSocket = null;
-        long endTimeMs = System.currentTimeMillis() + (maxTimeoutSeconds * 1000);
+        long endTimeMs = System.currentTimeMillis() + maxTimeoutSeconds * 1000L;
 
         try {
             // Listen to all UDP packets to any interface to port 'port'.
@@ -389,7 +390,7 @@ public class NetworkUtils {
      */
     @Nonnull
     protected static HttpURLConnection post(final @NonNull String urlString,
-                                            final @NonNull byte[] postData,
+                                            final byte[] postData,
                                             final @Nullable String versionString) throws IOException {
         // HTTP(S) Connect.
         HttpURLConnection httpConnection = post(urlString, versionString);

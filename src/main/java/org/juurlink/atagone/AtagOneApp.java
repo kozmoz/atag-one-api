@@ -98,7 +98,7 @@ public class AtagOneApp {
             if (configuration.getTemperature() != null) {
                 val currentRoomTemperature = atagOneConnector.setTemperature(configuration.getTemperature());
                 if (currentRoomTemperature != null) {
-                    System.out.println(String.format(Locale.US, "%.1f", currentRoomTemperature));
+                    System.out.printf(Locale.US, "%.1f%n", currentRoomTemperature);
                 }
 
             } else if (configuration.isDump()) {
@@ -170,8 +170,8 @@ public class AtagOneApp {
             System.exit(1);
 
         } catch (IOException e) {
-            // Print human readable error message; include class name in error.
-            System.err.println("Input Output Error: " + e.toString());
+            // Print human-readable error message; include class name in error.
+            System.err.println("Input Output Error: " + e);
             e.printStackTrace(System.err);
             System.err.println();
             System.exit(1);
@@ -348,7 +348,8 @@ public class AtagOneApp {
         try {
             Class<AtagOneApp> clazz = AtagOneApp.class;
             String className = clazz.getSimpleName() + ".class";
-            String classPath = clazz.getResource(className).toString();
+            URL resource = clazz.getResource(className);
+            String classPath = resource != null ? resource.toString() : "";
             if (classPath.startsWith("jar")) {
 
                 // Class from JAR.

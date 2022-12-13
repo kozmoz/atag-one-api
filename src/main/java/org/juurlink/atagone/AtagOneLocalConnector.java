@@ -8,7 +8,7 @@ import lombok.val;
 import org.juurlink.atagone.domain.*;
 import org.juurlink.atagone.exceptions.AccessDeniedException;
 import org.juurlink.atagone.exceptions.AtagSearchErrorException;
-import org.juurlink.atagone.exceptions.NotauthorizedException;
+import org.juurlink.atagone.exceptions.NotAuthorizedException;
 import org.juurlink.atagone.utils.*;
 import org.juurlink.atagone.utils.PageContent;
 
@@ -24,6 +24,7 @@ import java.util.Map;
  * Connect to ATAG One thermostat in local network.
  */
 @Log
+@SuppressWarnings("HttpUrlsUsage")
 public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
     private static final int MAX_LISTEN_TIMEOUT_SECONDS = 60;
@@ -43,7 +44,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
     private static final int MESSAGE_INFO_CONFIGURATION = 4;
     private static final int MESSAGE_INFO_REPORT = 8;
     private static final int MESSAGE_INFO_STATUS = 16;
-    private static final int MESSAGE_INFO_WIFISCAN = 32;
+    private static final int MESSAGE_INFO_WIFI_SCAN = 32;
     private static final int MESSAGE_INFO_REPORT_DETAILS = 64;
 
     /**
@@ -101,7 +102,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
      */
     @SuppressWarnings("unused")
     public AtagOneLocalConnector(final @Nonnull @NonNull Configuration configuration) throws IOException {
-        log.fine("Instantiate " + AtagOneApp.THERMOSTAT_NAME + " local connector");
+        log.fine(String.format("Instantiate %s local connector", AtagOneApp.THERMOSTAT_NAME));
 
         versionInfo = configuration.getVersion();
 
@@ -117,7 +118,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
             selectedDevice = AtagOneInfo.builder().deviceAddress(deviceAddress).build();
         }
 
-        // Local computer MAC address (used for communication with thermostat).
+        // Local computer's MAC address (Is used to communicate with the thermostat).
         DeviceInfo deviceInfo = NetworkUtils.getDeviceInfo();
         if (StringUtils.isNotBlank(configuration.getMac())) {
             // Override MAC address with configured mac.
@@ -409,7 +410,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
                 MESSAGE_INFO_CONFIGURATION +
                 MESSAGE_INFO_REPORT +
                 MESSAGE_INFO_STATUS +
-                MESSAGE_INFO_WIFISCAN +
+                MESSAGE_INFO_WIFI_SCAN +
                 MESSAGE_INFO_REPORT_DETAILS;
         val jsonPayload = "{\"retrieve_message\":{" +
                 "\"seqnr\":0," +
@@ -605,10 +606,10 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
      * Test response for authorization errors.
      *
      * @param accStatus accStatus from response
-     * @throws NotauthorizedException When user did not approve authorization request
+     * @throws NotAuthorizedException When user did not approve authorization request
      * @throws AccessDeniedException  When user denied authorization request
      */
-    protected void assertAuthorized(@Nullable final Integer accStatus) throws NotauthorizedException, AccessDeniedException {
+    protected void assertAuthorized(@Nullable final Integer accStatus) throws NotAuthorizedException, AccessDeniedException {
 
         if (accStatus == null) {
             throw new IllegalStateException("Response '" + RESPONSE_ACC_STATUS + "' is null.");
@@ -621,7 +622,7 @@ public class AtagOneLocalConnector implements AtagOneConnectorInterface {
 
         // User did not approve authorization request.
         if (accStatus == 1) {
-            throw new NotauthorizedException("Please grant access to connect to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat. \n" +
+            throw new NotAuthorizedException("Please grant access to connect to the " + AtagOneApp.THERMOSTAT_NAME + " thermostat. \n" +
                 "This is only a one time action per device that wants to connect.");
         }
 

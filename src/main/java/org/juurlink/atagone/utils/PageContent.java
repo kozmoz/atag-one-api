@@ -9,6 +9,6 @@ import java.util.Map;
 @Value
 @Builder
 public class PageContent {
-    private Map<String, List<String>> headers;
-    private String content;
+    Map<String, List<String>> headers;
+    String content;
 }
