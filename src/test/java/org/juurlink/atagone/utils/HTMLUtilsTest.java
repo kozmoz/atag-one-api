@@ -43,7 +43,7 @@ public class HTMLUtilsTest {
 			"                </div>\n" +
 			"            </div>\n" +
 			"<div class=\"form-group\"><label class=\"col-xs-6 control-label\">Outside temperature</label>\n" +
-			"            <div class=\"col-xs-6\"><p class=\"form-control-static\">12.0&#176;                    </p></div>\n" +
+			"            <div class=\"col-xs-6\"><p class=\"form-control-static\">12.5&#176;                    </p></div>\n" +
 			"        </div>\n" +
 			"        <div class=\"form-group\"><label class=\"col-xs-6 control-label\">DHW setpoint</label>\n" +
 			"            <div class=\"col-xs-6\"><p class=\"form-control-static\">60.0&#176;</p></div>\n" +
@@ -71,7 +71,7 @@ public class HTMLUtilsTest {
 
 		actual = HTMLUtils.getValueByLabel(html, BigDecimal.class, "Buitentemperatuur", "Outside temperature");
 		assertEquals(BigDecimal.class, actual.getClass());
-		assertEquals("12.0", actual.toString());
+		assertEquals("12.5", actual.toString());
 	}
 
 	@Test
