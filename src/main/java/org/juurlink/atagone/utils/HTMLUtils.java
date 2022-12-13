@@ -59,8 +59,11 @@ public class HTMLUtils {
                         // Replace Dutch decimal separator.
                         valueString = valueString.replace(",", ".");
 
-                        // Remove HTML encoded characters and not numeric characters.
-                        valueString = valueString.replaceAll("&#x?[0-9]{2,4};", "").replaceAll("[^0-9.]", "");
+                        valueString = valueString
+                                // Remove HTML encoded characters.
+                                .replaceAll("&#x?[0-9]{2,4};", "")
+                                // Keep numbers, dots and dash (negative value) and remove everything else.
+                                .replaceAll("[^0-9.-]", "");
 
                         try {
                             return clazz.cast(new BigDecimal(valueString.replace(",", ".")));

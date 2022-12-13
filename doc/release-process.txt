@@ -13,8 +13,6 @@ Release process description
 	- Upload binary from target folder to GitHub releases page
 
 - Create new release for new version
-    - Edit .github_changelog_generator and update future version to new to release version
-	- Run ./generate_changelog.sh to update the auto generated changelog
 	- Update GitHub release description from changelog - https://github.com/kozmoz/atag-one-api/releases
 
 - Git commit push

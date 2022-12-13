@@ -9,13 +9,13 @@ A typical response message looks like this:
 
     {
         "deviceId": "6808-1401-3109_15-30-001-123",
-        "latestReportTime": "2019-01-26 13:20:04",
+        "latestReportTime": "2022-12-13 17:08:04",
         "connectedTo": "BCU",
         "burningHours": 41.4,
         "boilerHeatingFor": "-",
         "flameStatus": false,
         "roomTemperature": 18.1,
-        "outsideTemperature": 13,
+        "outsideTemperature": -2.1,
         "dhwSetpoint": 60,
         "dhwWaterTemperature": 32.3,
         "chSetpoint": 1.4,
@@ -59,7 +59,7 @@ Get diagnostic data via the ATAG One internet portal:
 
     $ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd
 
-Set the target room temperature to 20.5 degrees celsius via the ATAG One internet portal:
+Set the target room temperature to 20.5 degrees Celsius via the ATAG One internet portal:
 
     $ java -jar atag-one.jar --email user@gmail.com --password p6ssw0rd --set 20.5
 
